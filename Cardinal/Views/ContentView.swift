@@ -1,17 +1,26 @@
 //
-//  ContentView.swift
-//  Cardinal
+// ContentView.swift
+// Cardinal
 //
-//  Created by Rick Liu on 2025-07-24.
+// Created by Rick Liu on 2025-07-24.
 //
-
 import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            HighlightsView()
+        ScrollView {
+            VStack {
+                HighlightsView()
+                SkillsTickerView()
+                ProjectsView()
+            }
+            .frame(
+                maxWidth: .infinity,
+                alignment: .topLeading
+            )
+            .foregroundColor(.black)
+            .padding(.top, 64)
         }
-        .background(Color.white)
+        .preferredColorScheme(.light)
     }
 }

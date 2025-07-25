@@ -46,12 +46,7 @@ struct HighlightsView: View {
     var body: some View {
         VStack (alignment: .leading, spacing: 48){
             // title
-            VStack (alignment: .leading, spacing: 8){
-                Text("HIGHLIGHTS")
-                    .font(.system(size: h1, weight: .bold, design: .rounded))
-                Text("what i'm most proud of")
-                    .font(.mabryPro(size: subtitle))
-            }
+            SectionHeaderView(titleText: "HIGHLIGHTS", subtitleText: "what i'm most proud of")
             
             // bullet points
             VStack(alignment: .leading, spacing: 12){
@@ -113,11 +108,9 @@ struct HighlightsView: View {
         }
         .frame(
             maxWidth: .infinity,
-            maxHeight: .infinity,
             alignment: .topLeading
         )
         .padding(.horizontal, 36)
-        .padding(.vertical, 64)
-        .foregroundColor(.black)
+        .padding(.bottom, 48)
     }
 }
