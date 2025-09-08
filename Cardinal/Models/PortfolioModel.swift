@@ -60,6 +60,7 @@ struct PortfolioResponse: Codable, Equatable {
     let resume: ResumeItem?
     let skills: [String]?
     let projects: [ProjectItem]?
+    let sectionOrder: [String]?
 }
 
 enum PortfolioPayloadParser {

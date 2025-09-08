@@ -12,6 +12,16 @@ import FirebaseAuth
 #endif
 
 struct PortfolioView: View {
+    enum SectionType: String, CaseIterable, Identifiable {
+        case personalDetails
+        case experience
+        case projects
+        case skills
+        case resume
+        case textBlock
+        var id: String { rawValue }
+    }
+    
     struct PresentablePersonalDetails: Equatable {
         let firstName: String
         let lastName: String
@@ -57,6 +67,7 @@ struct PortfolioView: View {
     private let overrideResume: PresentableResume?
     private let overrideSkills: PresentableSkills?
     private let overrideProjects: [PresentableProject]?
+    private let overrideSectionOrder: [SectionType]?
     
     #if !APPCLIP
     @EnvironmentObject var formViewModel: FormViewModel
@@ -70,13 +81,15 @@ struct PortfolioView: View {
          overrideExperiences: [PresentableExperience]? = nil,
          overrideResume: PresentableResume? = nil,
          overrideSkills: PresentableSkills? = nil,
-         overrideProjects: [PresentableProject]? = nil) {
+         overrideProjects: [PresentableProject]? = nil,
+         overrideSectionOrder: [SectionType]? = nil) {
         self.overridePersonalDetails = overridePersonalDetails
         self.overrideTextBlocks = overrideTextBlocks
         self.overrideExperiences = overrideExperiences
         self.overrideResume = overrideResume
         self.overrideSkills = overrideSkills
         self.overrideProjects = overrideProjects
+        self.overrideSectionOrder = overrideSectionOrder
     }
     
     private var effectivePersonalDetails: PresentablePersonalDetails? {
@@ -137,208 +150,258 @@ struct PortfolioView: View {
         #endif
     }
     
+    private var effectiveSectionOrder: [SectionType] {
+        #if !APPCLIP
+        // For main app, use FormViewModel's section order
+        let formViewModelOrder = formViewModel.selectedSections.compactMap { formSectionType in
+            return SectionType(rawValue: formSectionType.rawValue)
+        }
+        return formViewModelOrder.filter { sectionHasData($0) }
+        #else
+        // For App Clip, use injected section order if available, otherwise default order
+        if let injectedOrder = overrideSectionOrder {
+            return injectedOrder.filter { sectionHasData($0) }
+        } else {
+            let defaultOrder: [SectionType] = [.personalDetails, .textBlock, .experience, .resume, .skills, .projects]
+            return defaultOrder.filter { sectionHasData($0) }
+        }
+        #endif
+    }
+    
+    private func sectionHasData(_ sectionType: SectionType) -> Bool {
+        switch sectionType {
+        case .personalDetails:
+            return effectivePersonalDetails != nil
+        case .textBlock:
+            return !effectiveTextBlocks.isEmpty
+        case .experience:
+            return !effectiveExperiences.isEmpty
+        case .resume:
+            return effectiveResume != nil
+        case .skills:
+            return effectiveSkills != nil
+        case .projects:
+            return !effectiveProjects.isEmpty
+        }
+    }
+    
+    @ViewBuilder
+    private func sectionView(for sectionType: SectionType) -> some View {
+        switch sectionType {
+        case .personalDetails:
+            if let pd = effectivePersonalDetails {
+                Section(header: Text("Personal Details")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(pd.firstName) \(pd.lastName)")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        Text(pd.email)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        if !pd.phoneNumber.isEmpty {
+                            Text(pd.phoneNumber)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        if !pd.linkedIn.isEmpty {
+                            Link(destination: URL(string: pd.linkedIn) ?? URL(string: "https://linkedin.com")!) {
+                                HStack {
+                                    Image(systemName: "link")
+                                        .font(.caption)
+                                    Text("LinkedIn")
+                                        .font(.subheadline)
+                                }
+                                .foregroundColor(.blue)
+                            }
+                        }
+                        if !pd.github.isEmpty {
+                            Link(destination: URL(string: pd.github) ?? URL(string: "https://github.com")!) {
+                                HStack {
+                                    Image(systemName: "link")
+                                        .font(.caption)
+                                    Text("GitHub")
+                                        .font(.subheadline)
+                                }
+                                .foregroundColor(.blue)
+                            }
+                        }
+                        if !pd.website.isEmpty {
+                            Link(destination: URL(string: pd.website) ?? URL(string: "https://example.com")!) {
+                                HStack {
+                                    Image(systemName: "link")
+                                        .font(.caption)
+                                    Text("Website")
+                                        .font(.subheadline)
+                                }
+                                .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            
+        case .textBlock:
+            let blocks = effectiveTextBlocks
+            if !blocks.isEmpty {
+                Section(header: Text("Text Blocks")) {
+                    ForEach(blocks) { block in
+                        VStack(alignment: .leading, spacing: 6) {
+                            if !block.header.isEmpty {
+                                Text(block.header)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                            }
+                            if !block.body.isEmpty {
+                                Text(block.body)
+                                    .font(.footnote)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+            
+        case .experience:
+            let exps = effectiveExperiences
+            if !exps.isEmpty {
+                Section(header: Text("Experience")) {
+                    ForEach(exps) { exp in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(exp.role)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            Text(exp.company)
+                                .font(.footnote)
+                            Text(formatPeriod(startDateString: exp.startDateString, endDateString: exp.endDateString))
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                            if let desc = exp.description, !desc.isEmpty {
+                                Text(desc)
+                                    .font(.footnote)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+            
+        case .resume:
+            if let resume = effectiveResume {
+                Section(header: Text("Resume")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "doc.fill")
+                                .foregroundColor(.blue)
+                                .font(.title2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(resume.fileName)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                Text("Uploaded: \(resume.uploadedAt)")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Button("View") {
+                                if let url = URL(string: resume.downloadURL) {
+                                    #if APPCLIP
+                                    // For App Clip, use SFSafariViewController for in-app PDF viewing
+                                    presentPDFInSafariView(url: url)
+                                    #else
+                                    // For main app, open in external app
+                                    UIApplication.shared.open(url)
+                                    #endif
+                                }
+                            }
+                            .font(.footnote)
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            
+        case .skills:
+            if let skillsData = effectiveSkills {
+                Section(header: Text("Skills")) {
+                    LazyVGrid(columns: [
+                        GridItem(.adaptive(minimum: 80), spacing: 8)
+                    ], spacing: 8) {
+                        ForEach(skillsData.skills, id: \.self) { skill in
+                            Text(skill)
+                                .font(.footnote)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundColor(.blue)
+                                .cornerRadius(16)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            
+        case .projects:
+            let projects = effectiveProjects
+            if !projects.isEmpty {
+                Section(header: Text("Projects")) {
+                    ForEach(projects) { project in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(project.title)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            
+                            if let description = project.description, !description.isEmpty {
+                                Text(description)
+                                    .font(.footnote)
+                            }
+                            
+                            if !project.tools.isEmpty {
+                                LazyVGrid(columns: [
+                                    GridItem(.adaptive(minimum: 60), spacing: 6)
+                                ], spacing: 6) {
+                                    ForEach(project.tools, id: \.self) { tool in
+                                        Text(tool)
+                                            .font(.caption)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.green.opacity(0.1))
+                                            .foregroundColor(.green)
+                                            .cornerRadius(12)
+                                    }
+                                }
+                            }
+                            
+                            if let link = project.link, !link.isEmpty {
+                                Link(destination: URL(string: link) ?? URL(string: "https://example.com")!) {
+                                    HStack {
+                                        Image(systemName: "link")
+                                            .font(.caption)
+                                        Text(link)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    }
+                                    .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             List {
-                if let pd = effectivePersonalDetails {
-                    Section(header: Text("Personal Details")) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("\(pd.firstName) \(pd.lastName)")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                            Text(pd.email)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            if !pd.phoneNumber.isEmpty {
-                                Text(pd.phoneNumber)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            if !pd.linkedIn.isEmpty {
-                                Link(destination: URL(string: pd.linkedIn) ?? URL(string: "https://linkedin.com")!) {
-                                    HStack {
-                                        Image(systemName: "link")
-                                            .font(.caption)
-                                        Text("LinkedIn")
-                                            .font(.subheadline)
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                            }
-                            if !pd.github.isEmpty {
-                                Link(destination: URL(string: pd.github) ?? URL(string: "https://github.com")!) {
-                                    HStack {
-                                        Image(systemName: "link")
-                                            .font(.caption)
-                                        Text("GitHub")
-                                            .font(.subheadline)
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                            }
-                            if !pd.website.isEmpty {
-                                Link(destination: URL(string: pd.website) ?? URL(string: "https://example.com")!) {
-                                    HStack {
-                                        Image(systemName: "link")
-                                            .font(.caption)
-                                        Text("Website")
-                                            .font(.subheadline)
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                let blocks = effectiveTextBlocks
-                if blocks.isEmpty == false {
-                    Section(header: Text("Text Blocks")) {
-                        ForEach(blocks) { block in
-                            VStack(alignment: .leading, spacing: 6) {
-                                if block.header.isEmpty == false {
-                                    Text(block.header)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                }
-                                if block.body.isEmpty == false {
-                                    Text(block.body)
-                                        .font(.footnote)
-                                }
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
-                }
-
-                let exps = effectiveExperiences
-                if exps.isEmpty == false {
-                    Section(header: Text("Experience")) {
-                        ForEach(exps) { exp in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(exp.role)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                Text(exp.company)
-                                    .font(.footnote)
-                                Text(formatPeriod(startDateString: exp.startDateString, endDateString: exp.endDateString))
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                                if let desc = exp.description, desc.isEmpty == false {
-                                    Text(desc)
-                                        .font(.footnote)
-                                }
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
-                }
-
-                if let resume = effectiveResume {
-                    Section(header: Text("Resume")) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "doc.fill")
-                                    .foregroundColor(.blue)
-                                    .font(.title2)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(resume.fileName)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                    Text("Uploaded: \(resume.uploadedAt)")
-                                        .font(.footnote)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Button("View") {
-                                    if let url = URL(string: resume.downloadURL) {
-                                        #if APPCLIP
-                                        // For App Clip, use SFSafariViewController for in-app PDF viewing
-                                        presentPDFInSafariView(url: url)
-                                        #else
-                                        // For main app, open in external app
-                                        UIApplication.shared.open(url)
-                                        #endif
-                                    }
-                                }
-                                .font(.footnote)
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.small)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                if let skillsData = effectiveSkills {
-                    Section(header: Text("Skills")) {
-                        LazyVGrid(columns: [
-                            GridItem(.adaptive(minimum: 80), spacing: 8)
-                        ], spacing: 8) {
-                            ForEach(skillsData.skills, id: \.self) { skill in
-                                Text(skill)
-                                    .font(.footnote)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.blue.opacity(0.1))
-                                    .foregroundColor(.blue)
-                                    .cornerRadius(16)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                let projects = effectiveProjects
-                if !projects.isEmpty {
-                    Section(header: Text("Projects")) {
-                        ForEach(projects) { project in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(project.title)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                
-                                if let description = project.description, !description.isEmpty {
-                                    Text(description)
-                                        .font(.footnote)
-                                }
-                                
-                                if !project.tools.isEmpty {
-                                    LazyVGrid(columns: [
-                                        GridItem(.adaptive(minimum: 60), spacing: 6)
-                                    ], spacing: 6) {
-                                        ForEach(project.tools, id: \.self) { tool in
-                                            Text(tool)
-                                                .font(.caption)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(Color.green.opacity(0.1))
-                                                .foregroundColor(.green)
-                                                .cornerRadius(12)
-                                        }
-                                    }
-                                }
-                                
-                                if let link = project.link, !link.isEmpty {
-                                    Link(destination: URL(string: link) ?? URL(string: "https://example.com")!) {
-                                        HStack {
-                                            Image(systemName: "link")
-                                                .font(.caption)
-                                            Text(link)
-                                                .font(.caption)
-                                                .lineLimit(1)
-                                        }
-                                        .foregroundColor(.blue)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
+                ForEach(effectiveSectionOrder, id: \.id) { sectionType in
+                    sectionView(for: sectionType)
                 }
                 
-                if effectivePersonalDetails == nil {
+                if effectiveSectionOrder.isEmpty {
                     Section {
                         #if APPCLIP
                         Text("No details yet.")
@@ -358,12 +421,16 @@ struct PortfolioView: View {
             .onAppear {
                 if let uid = Auth.auth().currentUser?.uid {
                     Task {
+                        // Fetch all data first
                         await formViewModel.fetchPersonalDetails(userId: uid)
                         await formViewModel.fetchTextBlocks(userId: uid)
                         await formViewModel.fetchExperiences(userId: uid)
                         await formViewModel.fetchResume(userId: uid)
                         await formViewModel.fetchSkills(userId: uid)
                         await formViewModel.fetchProjects(userId: uid)
+                        
+                        // Then apply the saved section order after all data is loaded
+                        await formViewModel.fetchSectionOrder(userId: uid)
                     }
                 }
             }

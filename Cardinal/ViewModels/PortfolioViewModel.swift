@@ -14,6 +14,7 @@ final class PortfolioViewModel: ObservableObject {
     @Published var resume: ResumeItem?
     @Published var skills: [String] = []
     @Published var projects: [ProjectItem] = []
+    @Published var sectionOrder: [String] = []
 
     // Returns a struct that PortfolioView can accept directly as an override
     var presentableDetails: (firstName: String, lastName: String, email: String, linkedIn: String)? {
@@ -70,6 +71,8 @@ final class PortfolioViewModel: ObservableObject {
                 self.resume = decoded.resume
                 self.skills = decoded.skills ?? []
                 self.projects = decoded.projects ?? []
+                self.sectionOrder = decoded.sectionOrder ?? []
+                print("🔄 App Clip received section order: \(self.sectionOrder)")
             }
         } catch {
             // No-op for clip; optionally capture to analytics

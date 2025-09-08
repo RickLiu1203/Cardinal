@@ -22,6 +22,7 @@ struct CardinalPortfolioClipApp: App {
                 let injectedResume = vm.resume.map { PortfolioView.PresentableResume(fileName: $0.fileName, downloadURL: $0.downloadURL, uploadedAt: $0.uploadedAt) }
                 let injectedSkills = vm.skills.isEmpty ? nil : PortfolioView.PresentableSkills(skills: vm.skills)
                 let injectedProjects = vm.projects.map { PortfolioView.PresentableProject(id: $0.id, title: $0.title, description: $0.description, tools: $0.tools, link: $0.link) }
+                let injectedSectionOrder = vm.sectionOrder.isEmpty ? nil : vm.sectionOrder.compactMap { PortfolioView.SectionType(rawValue: $0) }
                 
                 if let pd = vm.personalDetails {
                     PortfolioView(
@@ -38,11 +39,24 @@ struct CardinalPortfolioClipApp: App {
                         overrideExperiences: injectedExps,
                         overrideResume: injectedResume,
                         overrideSkills: injectedSkills,
-                        overrideProjects: injectedProjects
+                        overrideProjects: injectedProjects,
+                        overrideSectionOrder: injectedSectionOrder
                     )
                 } else {
-                    PortfolioView(overridePersonalDetails: nil, overrideTextBlocks: injectedBlocks, overrideExperiences: injectedExps, overrideResume: injectedResume, overrideSkills: injectedSkills, overrideProjects: injectedProjects)
+                    PortfolioView(
+                        overridePersonalDetails: nil,
+                        overrideTextBlocks: injectedBlocks,
+                        overrideExperiences: injectedExps,
+                        overrideResume: injectedResume,
+                        overrideSkills: injectedSkills,
+                        overrideProjects: injectedProjects,
+                        overrideSectionOrder: injectedSectionOrder
+                    )
                 }
+            }
+            .onAppear {
+                let injectedSectionOrder = vm.sectionOrder.isEmpty ? nil : vm.sectionOrder.compactMap { PortfolioView.SectionType(rawValue: $0) }
+                print("📱 App Clip using section order: \(injectedSectionOrder?.map { $0.rawValue } ?? ["default"])")
             }
             .onOpenURL { url in
                 vm.apply(url: url)

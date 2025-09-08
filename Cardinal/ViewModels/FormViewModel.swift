@@ -100,6 +100,74 @@ class FormViewModel: ObservableObject {
         guard !selectedSections.contains(type) else { return }
         selectedSections.append(type)
     }
+    
+    func reorderSections(from sourceIndexSet: IndexSet, to destinationIndex: Int) {
+        selectedSections.move(fromOffsets: sourceIndexSet, toOffset: destinationIndex)
+        
+        // Save the new order to Firebase if user is authenticated
+        if let userId = currentUserId {
+            Task {
+                await saveSectionOrder(userId: userId)
+            }
+        }
+    }
+    
+    private func saveSectionOrder(userId: String) async {
+        do {
+            let orderArray = selectedSections.map { $0.rawValue }
+            let payload: [String: Any] = [
+                "sectionOrder": orderArray,
+                "updatedAt": FieldValue.serverTimestamp()
+            ]
+            try await db.collection("users").document(userId).collection("settings").document("sectionOrder").setData(payload, merge: true)
+        } catch {
+            print("Error saving section order: \(error)")
+        }
+    }
+    
+    func fetchSectionOrder(userId: String) async {
+        do {
+            let doc = try await db.collection("users").document(userId)
+                .collection("settings").document("sectionOrder")
+                .getDocument()
+            
+            if let data = doc.data(),
+               let orderArray = data["sectionOrder"] as? [String] {
+                let orderedSections = orderArray.compactMap { SectionType(rawValue: $0) }
+                await MainActor.run {
+                    // Only update if we have a saved order
+                    if !orderedSections.isEmpty {
+                        // Filter to sections that we actually have data for
+                        let sectionsWithData = orderedSections.filter { section in
+                            switch section {
+                            case .personalDetails:
+                                return personalDetails != nil
+                            case .textBlock:
+                                return !textBlocks.isEmpty
+                            case .experience:
+                                return !experiences.isEmpty
+                            case .resume:
+                                return resume != nil
+                            case .skills:
+                                return skills != nil
+                            case .projects:
+                                return !projects.isEmpty
+                            }
+                        }
+                        
+                        // Add any sections with data that weren't in the saved order
+                        let currentSectionsSet = Set(selectedSections)
+                        let newSections = currentSectionsSet.filter { !orderedSections.contains($0) }
+                        
+                        self.selectedSections = sectionsWithData + Array(newSections)
+                        print("✅ Applied section order: \(self.selectedSections.map { $0.rawValue })")
+                    }
+                }
+            }
+        } catch {
+            print("Error fetching section order: \(error)")
+        }
+    }
     func savePersonalDetails(_ data: PersonalDetailsData, userId: String) async throws {
         let payload: [String: Any] = [
             "firstName": data.firstName,
@@ -249,9 +317,10 @@ class FormViewModel: ObservableObject {
                 default: return a.startDateString > b.startDateString
                 }
             }
+            let finalList = list
             await MainActor.run {
-                self.experiences = list
-                if !list.isEmpty && !self.selectedSections.contains(.experience) {
+                self.experiences = finalList
+                if !finalList.isEmpty && !self.selectedSections.contains(.experience) {
                     self.selectedSections.append(.experience)
                 }
             }
@@ -477,9 +546,10 @@ class FormViewModel: ObservableObject {
                 ))
             }
             
+            let finalList = list
             await MainActor.run {
-                self.projects = list
-                if !list.isEmpty && !self.selectedSections.contains(.projects) {
+                self.projects = finalList
+                if !finalList.isEmpty && !self.selectedSections.contains(.projects) {
                     self.selectedSections.append(.projects)
                 }
             }

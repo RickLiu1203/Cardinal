@@ -120,6 +120,19 @@ exports.getPortfolio = onRequest(async (req, res) => {
         };
       });
 
+      // Load section order
+      const sectionOrderSnap = await admin.firestore()
+          .collection("users").doc(id)
+          .collection("settings").doc("sectionOrder")
+          .get();
+      let sectionOrder = null;
+      if (sectionOrderSnap.exists) {
+        const sod = sectionOrderSnap.data() || {};
+        if (sod.sectionOrder && Array.isArray(sod.sectionOrder)) {
+          sectionOrder = sod.sectionOrder;
+        }
+      }
+
       // Return the structure the App Clip expects
       return res.json({
         firstName: data.firstName || "",
@@ -134,6 +147,7 @@ exports.getPortfolio = onRequest(async (req, res) => {
         resume,
         skills,
         projects,
+        sectionOrder,
       });
     } catch (error) {
       console.error("Error fetching portfolio:", error);

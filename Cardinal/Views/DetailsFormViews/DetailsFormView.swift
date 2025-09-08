@@ -189,11 +189,10 @@ struct DetailsFormView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                        default:
-                            Text(section.title)
                             }
                         }
                     }
+                    .onMove(perform: formViewModel.reorderSections)
                 }
             }
         }
@@ -205,12 +204,16 @@ struct DetailsFormView: View {
         .onAppear {
             if let uid = Auth.auth().currentUser?.uid {
                 Task {
+                    // Fetch all data first
                     await formViewModel.fetchPersonalDetails(userId: uid)
                     await formViewModel.fetchTextBlocks(userId: uid)
                     await formViewModel.fetchExperiences(userId: uid)
                     await formViewModel.fetchResume(userId: uid)
                     await formViewModel.fetchSkills(userId: uid)
                     await formViewModel.fetchProjects(userId: uid)
+                    
+                    // Then apply the saved section order after all data is loaded
+                    await formViewModel.fetchSectionOrder(userId: uid)
                 }
             }
         }
