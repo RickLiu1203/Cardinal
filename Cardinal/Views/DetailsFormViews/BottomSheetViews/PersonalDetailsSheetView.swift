@@ -11,12 +11,15 @@ import FirebaseAuth
 
 struct PersonalDetailsSheetView: View {
     var onAdded: (() -> Void)? = nil
+    var initialData: FormViewModel.PersonalDetailsData? = nil
+    var isEditing: Bool = false
     @EnvironmentObject var formViewModel: FormViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var email: String = ""
     @State private var linkedIn: String = ""
+    @State private var didPrefill: Bool = false
     var body: some View {
         VStack(spacing: 16) {
             Text("Personal Details")
@@ -28,14 +31,16 @@ struct PersonalDetailsSheetView: View {
             FormFieldView(title: "Email", text: $email, inputType: .email, isMandatory: true)
             FormFieldView(title: "LinkedIn", text: $linkedIn, inputType: .url, isMandatory: false)
             
-            Button("Add Section") {
+            Button(isEditing ? "Save Changes" : "Add Section") {
                 Task {
                     let data = FormViewModel.PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn)
                     await MainActor.run {
                         formViewModel.personalDetails = data
-                        formViewModel.addSection(.personalDetails)
+                        if !isEditing {
+                            formViewModel.addSection(.personalDetails)
+                        }
                     }
-                    onAdded?()
+                    if !isEditing { onAdded?() }
                     dismiss()
                     if let uid = Auth.auth().currentUser?.uid {
                         try? await formViewModel.savePersonalDetails(data, userId: uid)
@@ -47,6 +52,17 @@ struct PersonalDetailsSheetView: View {
             Spacer()
         }
         .padding()
+        .presentationDragIndicator(.visible)
+        .presentationDetents([.medium, .large])
+        .onAppear {
+            if !didPrefill, let existing = initialData {
+                firstName = existing.firstName
+                lastName = existing.lastName
+                email = existing.email
+                linkedIn = existing.linkedIn
+                didPrefill = true
+            }
+        }
     }
     private var isValid: Bool {
         !firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&

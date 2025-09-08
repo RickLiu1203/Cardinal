@@ -26,5 +26,7 @@ struct ListSheetView: View {
             Spacer()
         }
         .padding()
+        .presentationDragIndicator(.visible)
+        .presentationDetents([.medium, .large])
     }
 }

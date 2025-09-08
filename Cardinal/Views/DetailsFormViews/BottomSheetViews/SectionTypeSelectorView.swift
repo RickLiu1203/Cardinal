@@ -34,9 +34,7 @@ struct SectionTypeSelectorView: View {
         case .projects: ProjectSheetView(onAdded: { isPresented = false })
         case .skills: SkillsSheetView(onAdded: { isPresented = false })
         case .resume: ResumeSheetView(onAdded: { isPresented = false })
-        case .formField: EmptyView()
         case .list: ListSheetView(onAdded: { isPresented = false })
-        case .sectionTypeSelector: EmptyView()
         }
     }
 }

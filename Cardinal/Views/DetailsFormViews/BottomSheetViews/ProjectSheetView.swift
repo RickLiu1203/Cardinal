@@ -26,5 +26,7 @@ struct ProjectSheetView: View {
             Spacer()
         }
         .padding()
+        .presentationDragIndicator(.visible)
+        .presentationDetents([.medium, .large])
     }
 }

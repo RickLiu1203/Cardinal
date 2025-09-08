@@ -26,5 +26,7 @@ struct SkillsSheetView: View {
             Spacer()
         }
         .padding()
+        .presentationDragIndicator(.visible)
+        .presentationDetents([.medium, .large])
     }
 }

@@ -22,6 +22,14 @@ struct RootTabView: View {
                 Image(systemName: "square.and.pencil")
                 Text("Details")
             }
+            
+            NavigationStack {
+                PortfolioView()
+            }
+            .tabItem {
+                Image(systemName: "person.crop.square")
+                Text("Portfolio")
+            }
         }
     }
 }

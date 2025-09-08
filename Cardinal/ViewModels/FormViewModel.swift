@@ -16,9 +16,7 @@ class FormViewModel: ObservableObject {
         case projects
         case skills
         case resume
-        case formField
         case list
-        case sectionTypeSelector
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -27,9 +25,7 @@ class FormViewModel: ObservableObject {
             case .projects: return "Projects"
             case .skills: return "Skills"
             case .resume: return "Resume"
-            case .formField: return "Form Field"
             case .list: return "List"
-            case .sectionTypeSelector: return "Section Type Selector"
             }
         }
     }
@@ -44,7 +40,7 @@ class FormViewModel: ObservableObject {
     private let db = Firestore.firestore()
     var availableSections: [SectionType] {
         SectionType.allCases.filter { type in
-            type != .formField && type != .sectionTypeSelector && !selectedSections.contains(type)
+            !selectedSections.contains(type)    
         }
     }
     func addSection(_ type: SectionType) {
