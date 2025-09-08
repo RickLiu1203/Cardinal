@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct ListSheetView: View {
+    var onAdded: (() -> Void)? = nil
     @EnvironmentObject var formViewModel: FormViewModel
     @Environment(\.dismiss) private var dismiss
     var body: some View {
@@ -18,6 +19,7 @@ struct ListSheetView: View {
                 .fontWeight(.bold)
             Button("Add Section") {
                 formViewModel.addSection(.list)
+                onAdded?()
                 dismiss()
             }
             .buttonStyle(.borderedProminent)

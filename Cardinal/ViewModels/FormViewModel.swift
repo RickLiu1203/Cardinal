@@ -7,6 +7,7 @@
 
 
 import Foundation
+import FirebaseFirestore
 
 class FormViewModel: ObservableObject {
     enum SectionType: String, CaseIterable, Identifiable, Equatable {
@@ -33,13 +34,52 @@ class FormViewModel: ObservableObject {
         }
     }
     @Published var selectedSections: [SectionType] = []
+    struct PersonalDetailsData: Equatable {
+        let firstName: String
+        let lastName: String
+        let email: String
+        let linkedIn: String
+    }
+    @Published var personalDetails: PersonalDetailsData?
+    private let db = Firestore.firestore()
     var availableSections: [SectionType] {
         SectionType.allCases.filter { type in
-            !selectedSections.contains(type)
+            type != .formField && type != .sectionTypeSelector && !selectedSections.contains(type)
         }
     }
     func addSection(_ type: SectionType) {
         guard !selectedSections.contains(type) else { return }
         selectedSections.append(type)
+    }
+    func savePersonalDetails(_ data: PersonalDetailsData, userId: String) async throws {
+        let payload: [String: Any] = [
+            "firstName": data.firstName,
+            "lastName": data.lastName,
+            "email": data.email,
+            "linkedIn": data.linkedIn
+        ]
+        try await db.collection("users").document(userId).collection("sections").document("personalDetails").setData(payload, merge: true)
+        await MainActor.run {
+            self.personalDetails = data
+        }
+    }
+    func fetchPersonalDetails(userId: String) async {
+        do {
+            let snapshot = try await db.collection("users").document(userId).collection("sections").document("personalDetails").getDocument()
+            if let data = snapshot.data() {
+                let firstName = data["firstName"] as? String ?? ""
+                let lastName = data["lastName"] as? String ?? ""
+                let email = data["email"] as? String ?? ""
+                let linkedIn = data["linkedIn"] as? String ?? ""
+                let model = PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn)
+                await MainActor.run {
+                    self.personalDetails = model
+                    if !self.selectedSections.contains(.personalDetails) {
+                        self.selectedSections.append(.personalDetails)
+                    }
+                }
+            }
+        } catch {
+        }
     }
 }

@@ -20,9 +20,9 @@ struct AddSectionView: View {
                 .frame(maxWidth: .infinity)
                 .padding()
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.plain)
         .sheet(isPresented: $showingSheet) {
-            SheetControllerView()
+            SectionTypeSelectorView(isPresented: $showingSheet)
                 .environmentObject(formViewModel)
         }
     }

@@ -7,25 +7,47 @@
 
 
 import SwiftUI
+import FirebaseAuth
 
 struct DetailsFormView: View {
     @EnvironmentObject var formViewModel: FormViewModel
     var body: some View {
-        VStack(spacing: 16) {
-            if formViewModel.selectedSections.isEmpty {
-                Text("No sections added")
-                    .foregroundColor(.secondary)
-            } else {
-                List {
+        List {
+            AddSectionView()
+            if formViewModel.selectedSections.isEmpty == false {
+                Section {
                     ForEach(formViewModel.selectedSections, id: \.id) { section in
-                        Text(section.title)
+                        switch section {
+                        case .personalDetails:
+                            if let pd = formViewModel.personalDetails {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Personal Details")
+                                        .font(.headline)
+                                    Text("Name: \(pd.firstName) \(pd.lastName)")
+                                        .font(.subheadline)
+                                    Text("Email: \(pd.email)")
+                                        .font(.subheadline)
+                                    if pd.linkedIn.isEmpty == false {
+                                        Text("LinkedIn: \(pd.linkedIn)")
+                                            .font(.subheadline)
+                                    }
+                                }
+                            } else {
+                                Text("Personal Details")
+                            }
+                        default:
+                            Text(section.title)
+                        }
                     }
                 }
-                .listStyle(.insetGrouped)
             }
-            AddSectionView()
         }
-        .padding()
+        .listStyle(.insetGrouped)
         .navigationTitle("Details")
+        .onAppear {
+            if let uid = Auth.auth().currentUser?.uid {
+                Task { await formViewModel.fetchPersonalDetails(userId: uid) }
+            }
+        }
     }
 }

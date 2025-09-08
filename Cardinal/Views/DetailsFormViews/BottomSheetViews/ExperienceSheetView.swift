@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct ExperienceSheetView: View {
+    var onAdded: (() -> Void)? = nil
     @EnvironmentObject var formViewModel: FormViewModel
     @Environment(\.dismiss) private var dismiss
     var body: some View {
@@ -18,6 +19,7 @@ struct ExperienceSheetView: View {
                 .fontWeight(.bold)
             Button("Add Section") {
                 formViewModel.addSection(.experience)
+                onAdded?()
                 dismiss()
             }
             .buttonStyle(.borderedProminent)

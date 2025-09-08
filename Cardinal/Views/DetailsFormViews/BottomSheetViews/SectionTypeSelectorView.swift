@@ -9,20 +9,34 @@
 import SwiftUI
 
 struct SectionTypeSelectorView: View {
+    @Binding var isPresented: Bool
     @EnvironmentObject var formViewModel: FormViewModel
     @Environment(\.dismiss) private var dismiss
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Section Type Selector")
-                .font(.title2)
-                .fontWeight(.bold)
-            Button("Add Section") {
-                formViewModel.addSection(.sectionTypeSelector)
-                dismiss()
+        NavigationStack {
+            List(formViewModel.availableSections, id: \.id) { section in
+                NavigationLink(section.title) {
+                    destination(for: section)
+                        .environmentObject(formViewModel)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            Spacer()
+            .navigationTitle("Add Section")
         }
-        .padding()
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    @ViewBuilder
+    private func destination(for section: FormViewModel.SectionType) -> some View {
+        switch section {
+        case .personalDetails: PersonalDetailsSheetView(onAdded: { isPresented = false })
+        case .experience: ExperienceSheetView(onAdded: { isPresented = false })
+        case .projects: ProjectSheetView(onAdded: { isPresented = false })
+        case .skills: SkillsSheetView(onAdded: { isPresented = false })
+        case .resume: ResumeSheetView(onAdded: { isPresented = false })
+        case .formField: EmptyView()
+        case .list: ListSheetView(onAdded: { isPresented = false })
+        case .sectionTypeSelector: EmptyView()
+        }
     }
 }
