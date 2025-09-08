@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+never generate comments in the code
