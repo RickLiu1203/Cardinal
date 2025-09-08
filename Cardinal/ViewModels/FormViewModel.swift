@@ -78,4 +78,9 @@ class FormViewModel: ObservableObject {
         } catch {
         }
     }
+    /// Clears all user-specific in-memory form data. Call this on logout or account switch.
+    func clearUserData() {
+        personalDetails = nil
+        selectedSections.removeAll()
+    }
 }

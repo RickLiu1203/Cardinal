@@ -12,10 +12,36 @@
 		B8A644EC2E6E75D000A55206 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B8A644EB2E6E75D000A55206 /* FirebaseFirestore */; };
 		B8A644F02E6E76BA00A55206 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = B8A644EF2E6E76BA00A55206 /* GoogleSignIn */; };
 		B8A644F22E6E76BA00A55206 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B8A644F12E6E76BA00A55206 /* GoogleSignInSwift */; };
+		B8A645472E6F329500A55206 /* CardinalPortfolioClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = B8A645382E6F329400A55206 /* CardinalPortfolioClip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B8A645452E6F329500A55206 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B8A644BE2E6E720000A55206 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B8A645372E6F329400A55206;
+			remoteInfo = CardinalPortfolioClip;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B8A6454C2E6F329500A55206 /* Embed App Clips */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
+			dstSubfolderSpec = 16;
+			files = (
+				B8A645472E6F329500A55206 /* CardinalPortfolioClip.app in Embed App Clips */,
+			);
+			name = "Embed App Clips";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		B8A644C62E6E720000A55206 /* Cardinal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cardinal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B8A645382E6F329400A55206 /* CardinalPortfolioClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CardinalPortfolioClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -26,6 +52,22 @@
 			);
 			target = B8A644C52E6E720000A55206 /* Cardinal */;
 		};
+		B8A6454B2E6F329500A55206 /* Exceptions for "CardinalPortfolioClip" folder in "CardinalPortfolioClip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B8A645372E6F329400A55206 /* CardinalPortfolioClip */;
+		};
+		B8A645552E6F3C0700A55206 /* Exceptions for "Cardinal" folder in "CardinalPortfolioClip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/PortfolioModel.swift,
+				ViewModels/PortfolioViewModel.swift,
+				Views/PortfolioView/PortfolioView.swift,
+			);
+			target = B8A645372E6F329400A55206 /* CardinalPortfolioClip */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,8 +75,17 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B8A644F82E6E78AA00A55206 /* Exceptions for "Cardinal" folder in "Cardinal" target */,
+				B8A645552E6F3C0700A55206 /* Exceptions for "Cardinal" folder in "CardinalPortfolioClip" target */,
 			);
 			path = Cardinal;
+			sourceTree = "<group>";
+		};
+		B8A645392E6F329400A55206 /* CardinalPortfolioClip */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B8A6454B2E6F329500A55206 /* Exceptions for "CardinalPortfolioClip" folder in "CardinalPortfolioClip" target */,
+			);
+			path = CardinalPortfolioClip;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +103,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B8A645352E6F329400A55206 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -59,6 +117,7 @@
 			isa = PBXGroup;
 			children = (
 				B8A644C82E6E720000A55206 /* Cardinal */,
+				B8A645392E6F329400A55206 /* CardinalPortfolioClip */,
 				B8A644C72E6E720000A55206 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -67,6 +126,7 @@
 			isa = PBXGroup;
 			children = (
 				B8A644C62E6E720000A55206 /* Cardinal.app */,
+				B8A645382E6F329400A55206 /* CardinalPortfolioClip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -81,10 +141,12 @@
 				B8A644C22E6E720000A55206 /* Sources */,
 				B8A644C32E6E720000A55206 /* Frameworks */,
 				B8A644C42E6E720000A55206 /* Resources */,
+				B8A6454C2E6F329500A55206 /* Embed App Clips */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B8A645462E6F329500A55206 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				B8A644C82E6E720000A55206 /* Cardinal */,
@@ -101,6 +163,28 @@
 			productReference = B8A644C62E6E720000A55206 /* Cardinal.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B8A645372E6F329400A55206 /* CardinalPortfolioClip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B8A645482E6F329500A55206 /* Build configuration list for PBXNativeTarget "CardinalPortfolioClip" */;
+			buildPhases = (
+				B8A645342E6F329400A55206 /* Sources */,
+				B8A645352E6F329400A55206 /* Frameworks */,
+				B8A645362E6F329400A55206 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B8A645392E6F329400A55206 /* CardinalPortfolioClip */,
+			);
+			name = CardinalPortfolioClip;
+			packageProductDependencies = (
+			);
+			productName = CardinalPortfolioClip;
+			productReference = B8A645382E6F329400A55206 /* CardinalPortfolioClip.app */;
+			productType = "com.apple.product-type.application.on-demand-install-capable";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -112,6 +196,9 @@
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					B8A644C52E6E720000A55206 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					B8A645372E6F329400A55206 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -135,12 +222,20 @@
 			projectRoot = "";
 			targets = (
 				B8A644C52E6E720000A55206 /* Cardinal */,
+				B8A645372E6F329400A55206 /* CardinalPortfolioClip */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		B8A644C42E6E720000A55206 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B8A645362E6F329400A55206 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -157,7 +252,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B8A645342E6F329400A55206 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B8A645462E6F329500A55206 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B8A645372E6F329400A55206 /* CardinalPortfolioClip */;
+			targetProxy = B8A645452E6F329500A55206 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		B8A644D22E6E720100A55206 /* Debug */ = {
@@ -292,6 +402,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Cardinal/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cardinal;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -323,6 +434,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Cardinal/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cardinal;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -335,6 +447,72 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rzliu.Cardinal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B8A645492E6F329500A55206 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CardinalPortfolioClip/CardinalPortfolioClip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"CardinalPortfolioClip/Preview Content\"";
+				DEVELOPMENT_TEAM = 6JX3V33MZG;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CardinalPortfolioClip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cardinal Clip";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rzliu.Cardinal.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[arch=*]" = APPCLIP;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B8A6454A2E6F329500A55206 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CardinalPortfolioClip/CardinalPortfolioClip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"CardinalPortfolioClip/Preview Content\"";
+				DEVELOPMENT_TEAM = 6JX3V33MZG;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CardinalPortfolioClip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cardinal Clip";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rzliu.Cardinal.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[arch=*]" = APPCLIP;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -358,6 +536,15 @@
 			buildConfigurations = (
 				B8A644D52E6E720100A55206 /* Debug */,
 				B8A644D62E6E720100A55206 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B8A645482E6F329500A55206 /* Build configuration list for PBXNativeTarget "CardinalPortfolioClip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B8A645492E6F329500A55206 /* Debug */,
+				B8A6454A2E6F329500A55206 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

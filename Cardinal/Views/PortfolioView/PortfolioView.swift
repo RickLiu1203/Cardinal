@@ -6,15 +6,40 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct PortfolioView: View {
+    struct PresentablePersonalDetails: Equatable {
+        let firstName: String
+        let lastName: String
+        let email: String
+        let linkedIn: String
+    }
+    
+    // Optional override for App Clip or callers that want to inject data directly
+    private let overridePersonalDetails: PresentablePersonalDetails?
+    
+    #if !APPCLIP
     @EnvironmentObject var formViewModel: FormViewModel
+    #endif
+    
+    init(overridePersonalDetails: PresentablePersonalDetails? = nil) {
+        self.overridePersonalDetails = overridePersonalDetails
+    }
+    
+    private var effectivePersonalDetails: PresentablePersonalDetails? {
+        if let injected = overridePersonalDetails { return injected }
+        #if !APPCLIP
+        if let pd = formViewModel.personalDetails {
+            return .init(firstName: pd.firstName, lastName: pd.lastName, email: pd.email, linkedIn: pd.linkedIn)
+        }
+        #endif
+        return nil
+    }
     
     var body: some View {
         NavigationStack {
             List {
-                if let pd = formViewModel.personalDetails {
+                if let pd = effectivePersonalDetails {
                     Section(header: Text("Personal Details")) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("\(pd.firstName) \(pd.lastName)")
@@ -33,20 +58,22 @@ struct PortfolioView: View {
                     }
                 }
                 
-                if formViewModel.personalDetails == nil {
+                if effectivePersonalDetails == nil {
                     Section {
+                        #if APPCLIP
+                        Text("No details yet.")
+                            .foregroundColor(.secondary)
+                        Text("Open from your link to see details.")
+                            .foregroundColor(.secondary)
+                        #else
                         Text("No details yet. Add your info in the Details tab.")
                             .foregroundColor(.secondary)
+                        #endif
                     }
                 }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Portfolio")
-            .onAppear {
-                if let uid = Auth.auth().currentUser?.uid {
-                    Task { await formViewModel.fetchPersonalDetails(userId: uid) }
-                }
-            }
         }
     }
 }

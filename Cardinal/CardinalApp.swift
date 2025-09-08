@@ -31,6 +31,13 @@ struct CardinalApp: App {
             .onOpenURL { url in
                 authViewModel.handleGoogleSignInURL(url)
             }
+            .onChange(of: authViewModel.currentUser?.uid) { _, newUid in
+                // Clear stale data when the user changes (logout/login or account switch)
+                formViewModel.clearUserData()
+                if let uid = newUid {
+                    Task { await formViewModel.fetchPersonalDetails(userId: uid) }
+                }
+            }
         }
     }
 }
