@@ -9,6 +9,11 @@ import Foundation
 
 final class PortfolioViewModel: ObservableObject {
     @Published var personalDetails: PersonalDetails?
+    @Published var textBlocks: [TextBlock] = []
+    @Published var experiences: [ExperienceItem] = []
+    @Published var resume: ResumeItem?
+    @Published var skills: [String] = []
+    @Published var projects: [ProjectItem] = []
 
     // Returns a struct that PortfolioView can accept directly as an override
     var presentableDetails: (firstName: String, lastName: String, email: String, linkedIn: String)? {
@@ -42,8 +47,30 @@ final class PortfolioViewModel: ObservableObject {
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return }
-            let decoded = try JSONDecoder().decode(PersonalDetails.self, from: data)
-            await MainActor.run { self.personalDetails = decoded }
+            let decoded = try JSONDecoder().decode(PortfolioResponse.self, from: data)
+            await MainActor.run {
+                self.personalDetails = PersonalDetails(firstName: decoded.firstName,
+                                                       lastName: decoded.lastName,
+                                                       email: decoded.email,
+                                                       linkedIn: decoded.linkedIn,
+                                                       phoneNumber: decoded.phoneNumber,
+                                                       github: decoded.github,
+                                                       website: decoded.website)
+                self.textBlocks = decoded.textBlocks ?? []
+                // Sort experiences by endDate desc; nils last; fallback to startDate desc
+                let items = decoded.experiences ?? []
+                self.experiences = items.sorted { a, b in
+                    switch (a.endDate, b.endDate) {
+                    case let (la?, lb?): return la > lb
+                    case (nil, _?): return false
+                    case (_?, nil): return true
+                    default: return (a.startDate ?? "") > (b.startDate ?? "")
+                    }
+                }
+                self.resume = decoded.resume
+                self.skills = decoded.skills ?? []
+                self.projects = decoded.projects ?? []
+            }
         } catch {
             // No-op for clip; optionally capture to analytics
         }

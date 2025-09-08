@@ -19,6 +19,9 @@ struct PersonalDetailsSheetView: View {
     @State private var lastName: String = ""
     @State private var email: String = ""
     @State private var linkedIn: String = ""
+    @State private var phoneNumber: String = ""
+    @State private var github: String = ""
+    @State private var website: String = ""
     @State private var didPrefill: Bool = false
     var body: some View {
         VStack(spacing: 16) {
@@ -26,14 +29,21 @@ struct PersonalDetailsSheetView: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
-            FormFieldView(title: "First Name", text: $firstName, inputType: .text, isMandatory: true)
-            FormFieldView(title: "Last Name", text: $lastName, inputType: .text, isMandatory: true)
-            FormFieldView(title: "Email", text: $email, inputType: .email, isMandatory: true)
-            FormFieldView(title: "LinkedIn", text: $linkedIn, inputType: .url, isMandatory: false)
+            ScrollView {
+                VStack(spacing: 16) {
+                    FormFieldView(title: "First Name", text: $firstName, inputType: .text, isMandatory: true)
+                    FormFieldView(title: "Last Name", text: $lastName, inputType: .text, isMandatory: true)
+                    FormFieldView(title: "Email", text: $email, inputType: .email, isMandatory: true)
+                    FormFieldView(title: "Phone Number", text: $phoneNumber, inputType: .number, isMandatory: false)
+                    FormFieldView(title: "LinkedIn", text: $linkedIn, inputType: .url, isMandatory: false)
+                    FormFieldView(title: "GitHub", text: $github, inputType: .url, isMandatory: false)
+                    FormFieldView(title: "Personal Website", text: $website, inputType: .url, isMandatory: false)
+                }
+            }
             
             Button(isEditing ? "Save Changes" : "Add Section") {
                 Task {
-                    let data = FormViewModel.PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn)
+                    let data = FormViewModel.PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn, phoneNumber: phoneNumber, github: github, website: website)
                     await MainActor.run {
                         formViewModel.personalDetails = data
                         if !isEditing {
@@ -60,6 +70,9 @@ struct PersonalDetailsSheetView: View {
                 lastName = existing.lastName
                 email = existing.email
                 linkedIn = existing.linkedIn
+                phoneNumber = existing.phoneNumber
+                github = existing.github
+                website = existing.website
                 didPrefill = true
             }
         }

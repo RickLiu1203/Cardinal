@@ -12,6 +12,54 @@ struct PersonalDetails: Codable, Equatable {
     let lastName: String
     let email: String
     let linkedIn: String
+    let phoneNumber: String
+    let github: String
+    let website: String
+}
+
+struct TextBlock: Codable, Equatable, Identifiable {
+    let id: String
+    let header: String
+    let body: String
+}
+
+struct ExperienceItem: Codable, Equatable, Identifiable {
+    let id: String
+    let company: String
+    let role: String
+    // Formatted date strings coming from the Cloud Function (may be null)
+    let startDate: String?
+    let endDate: String?
+    let description: String?
+}
+
+struct ResumeItem: Codable, Equatable {
+    let fileName: String
+    let downloadURL: String
+    let uploadedAt: String // formatted date string from Cloud Function
+}
+
+struct ProjectItem: Codable, Equatable, Identifiable {
+    let id: String
+    let title: String
+    let description: String?
+    let tools: [String]
+    let link: String?
+}
+
+struct PortfolioResponse: Codable, Equatable {
+    let firstName: String
+    let lastName: String
+    let email: String
+    let linkedIn: String
+    let phoneNumber: String
+    let github: String
+    let website: String
+    let textBlocks: [TextBlock]?
+    let experiences: [ExperienceItem]?
+    let resume: ResumeItem?
+    let skills: [String]?
+    let projects: [ProjectItem]?
 }
 
 enum PortfolioPayloadParser {
@@ -22,8 +70,11 @@ enum PortfolioPayloadParser {
         let last = q("ln")
         let email = q("em")
         let li = q("li")
-        if [first, last, email, li].contains(where: { !$0.isEmpty }) {
-            return PersonalDetails(firstName: first, lastName: last, email: email, linkedIn: li)
+        let phone = q("ph")
+        let github = q("gh")
+        let website = q("ws")
+        if [first, last, email, li, phone, github, website].contains(where: { !$0.isEmpty }) {
+            return PersonalDetails(firstName: first, lastName: last, email: email, linkedIn: li, phoneNumber: phone, github: github, website: website)
         }
         return nil
     }
@@ -33,8 +84,11 @@ enum PortfolioPayloadParser {
         let last = payload["lastName"] ?? payload["ln"] ?? ""
         let email = payload["email"] ?? payload["em"] ?? ""
         let li = payload["linkedIn"] ?? payload["li"] ?? ""
-        if [first, last, email, li].contains(where: { !$0.isEmpty }) {
-            return PersonalDetails(firstName: first, lastName: last, email: email, linkedIn: li)
+        let phone = payload["phoneNumber"] ?? payload["ph"] ?? ""
+        let github = payload["github"] ?? payload["gh"] ?? ""
+        let website = payload["website"] ?? payload["ws"] ?? ""
+        if [first, last, email, li, phone, github, website].contains(where: { !$0.isEmpty }) {
+            return PersonalDetails(firstName: first, lastName: last, email: email, linkedIn: li, phoneNumber: phone, github: github, website: website)
         }
         return nil
     }

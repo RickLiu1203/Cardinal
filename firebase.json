@@ -14,5 +14,44 @@
         "npm --prefix \"$RESOURCE_DIR\" run lint"
       ]
     }
-  ]
+  ],
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ],
+    "rewrites": [
+      {
+        "source": "/portfolio",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/portfolio/**",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/files/**",
+        "destination": "https://firebasestorage.googleapis.com/v0/b/cardinalapp-4279c.appspot.com/o/**?alt=media"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/files/**",
+        "headers": [
+          {
+            "key": "Content-Disposition",
+            "value": "inline"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/pdf"
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -8,6 +8,10 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseStorage
+#if !APPCLIP
+import FirebaseAuth
+#endif
 
 class FormViewModel: ObservableObject {
     enum SectionType: String, CaseIterable, Identifiable, Equatable {
@@ -16,7 +20,7 @@ class FormViewModel: ObservableObject {
         case projects
         case skills
         case resume
-        case list
+        case textBlock
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -25,22 +29,71 @@ class FormViewModel: ObservableObject {
             case .projects: return "Projects"
             case .skills: return "Skills"
             case .resume: return "Resume"
-            case .list: return "List"
+            case .textBlock: return "Text Block"
             }
         }
     }
     @Published var selectedSections: [SectionType] = []
+    struct ExperienceData: Identifiable, Equatable, Codable {
+        let id: String
+        let company: String
+        let role: String
+        let startDateString: String
+        let endDateString: String? // nil means "Present"
+        let description: String?
+    }
+    struct TextBlockData: Identifiable, Equatable, Codable {
+        let id: String
+        let header: String
+        let body: String
+    }
+    struct ResumeData: Identifiable, Equatable, Codable {
+        let id: String
+        let fileName: String
+        let downloadURL: String
+        let uploadedAt: Date
+    }
+    struct SkillsData: Identifiable, Equatable, Codable {
+        let id: String
+        let skills: [String] // Array of individual skill strings
+    }
+    struct ProjectData: Identifiable, Equatable, Codable {
+        let id: String
+        let title: String
+        let description: String?
+        let tools: [String] // Array of individual tool strings
+        let link: String?
+    }
     struct PersonalDetailsData: Equatable {
         let firstName: String
         let lastName: String
         let email: String
         let linkedIn: String
+        let phoneNumber: String
+        let github: String
+        let website: String
     }
     @Published var personalDetails: PersonalDetailsData?
+    @Published var textBlocks: [TextBlockData] = []
+    @Published var experiences: [ExperienceData] = []
+    @Published var resume: ResumeData?
+    @Published var skills: SkillsData?
+    @Published var projects: [ProjectData] = []
     private let db = Firestore.firestore()
+    private let storage = Storage.storage()
+    
+    var currentUserId: String? {
+        #if !APPCLIP
+        return Auth.auth().currentUser?.uid
+        #else
+        return nil
+        #endif
+    }
     var availableSections: [SectionType] {
         SectionType.allCases.filter { type in
-            !selectedSections.contains(type)    
+            // Allow multiple Text Blocks, Experiences, and Projects; others are exclusive
+            if type == .textBlock || type == .experience || type == .projects { return true }
+            return !selectedSections.contains(type)
         }
     }
     func addSection(_ type: SectionType) {
@@ -52,7 +105,10 @@ class FormViewModel: ObservableObject {
             "firstName": data.firstName,
             "lastName": data.lastName,
             "email": data.email,
-            "linkedIn": data.linkedIn
+            "linkedIn": data.linkedIn,
+            "phoneNumber": data.phoneNumber,
+            "github": data.github,
+            "website": data.website
         ]
         try await db.collection("users").document(userId).collection("sections").document("personalDetails").setData(payload, merge: true)
         await MainActor.run {
@@ -67,7 +123,10 @@ class FormViewModel: ObservableObject {
                 let lastName = data["lastName"] as? String ?? ""
                 let email = data["email"] as? String ?? ""
                 let linkedIn = data["linkedIn"] as? String ?? ""
-                let model = PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn)
+                let phoneNumber = data["phoneNumber"] as? String ?? ""
+                let github = data["github"] as? String ?? ""
+                let website = data["website"] as? String ?? ""
+                let model = PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn, phoneNumber: phoneNumber, github: github, website: website)
                 await MainActor.run {
                     self.personalDetails = model
                     if !self.selectedSections.contains(.personalDetails) {
@@ -82,5 +141,349 @@ class FormViewModel: ObservableObject {
     func clearUserData() {
         personalDetails = nil
         selectedSections.removeAll()
+        textBlocks.removeAll()
+        experiences.removeAll()
+        resume = nil
+        skills = nil
+        projects.removeAll()
+    }
+
+    // MARK: - Text Blocks
+    func addTextBlockLocally(header: String, body: String) {
+        let block = TextBlockData(id: UUID().uuidString, header: header, body: body)
+        textBlocks.append(block)
+        if selectedSections.contains(.textBlock) == false {
+            selectedSections.append(.textBlock)
+        }
+    }
+    func saveTextBlock(_ header: String, body: String, userId: String) async throws {
+        let payload: [String: Any] = [
+            "header": header,
+            "body": body,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        _ = try await db.collection("users").document(userId)
+            .collection("sections").document("textBlocks")
+            .collection("items").addDocument(data: payload)
+    }
+    func fetchTextBlocks(userId: String) async {
+        do {
+            let snapshot = try await db.collection("users").document(userId)
+                .collection("sections").document("textBlocks")
+                .collection("items")
+                .order(by: "createdAt", descending: false)
+                .getDocuments()
+            let blocks: [TextBlockData] = snapshot.documents.map { doc in
+                let data = doc.data()
+                let header = data["header"] as? String ?? ""
+                let body = data["body"] as? String ?? ""
+                return TextBlockData(id: doc.documentID, header: header, body: body)
+            }
+            await MainActor.run {
+                self.textBlocks = blocks
+                if !blocks.isEmpty && !self.selectedSections.contains(.textBlock) {
+                    self.selectedSections.append(.textBlock)
+                }
+            }
+        } catch {
+        }
+    }
+
+    // MARK: - Experiences
+    func addExperienceLocally(company: String, role: String, startDate: Date, endDate: Date?, description: String?) {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        let startStr = df.string(from: startDate)
+        let endStr = endDate.map { df.string(from: $0) }
+        let model = ExperienceData(id: UUID().uuidString, company: company, role: role, startDateString: startStr, endDateString: endStr, description: description)
+        experiences.append(model)
+        if selectedSections.contains(.experience) == false {
+            selectedSections.append(.experience)
+        }
+        experiences.sort { a, b in
+            switch (a.endDateString, b.endDateString) {
+            case (nil, _?): return true
+            case (_?, nil): return false
+            case let (l?, r?): return l > r
+            default: return a.startDateString > b.startDateString
+            }
+        }
+    }
+    func saveExperience(company: String, role: String, startDate: Date, endDate: Date?, description: String?, userId: String) async throws {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        let payload: [String: Any] = [
+            "company": company,
+            "role": role,
+            "startDateString": df.string(from: startDate),
+            "endDateString": endDate != nil ? df.string(from: endDate!) : NSNull(),
+            "description": description ?? "",
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        _ = try await db.collection("users").document(userId)
+            .collection("sections").document("experiences")
+            .collection("items").addDocument(data: payload)
+    }
+    func fetchExperiences(userId: String) async {
+        do {
+            let snapshot = try await db.collection("users").document(userId)
+                .collection("sections").document("experiences")
+                .collection("items")
+                .getDocuments()
+            var list: [ExperienceData] = []
+            for doc in snapshot.documents {
+                let data = doc.data()
+                let company = data["company"] as? String ?? ""
+                let role = data["role"] as? String ?? ""
+                let startStr = data["startDateString"] as? String ?? ""
+                let endAny = data["endDateString"]
+                let endStr = endAny as? String
+                let desc = data["description"] as? String
+                list.append(ExperienceData(id: doc.documentID, company: company, role: role, startDateString: startStr, endDateString: endStr, description: desc))
+            }
+            list.sort { a, b in
+                switch (a.endDateString, b.endDateString) {
+                case (nil, _?): return true
+                case (_?, nil): return false
+                case let (l?, r?): return l > r
+                default: return a.startDateString > b.startDateString
+                }
+            }
+            await MainActor.run {
+                self.experiences = list
+                if !list.isEmpty && !self.selectedSections.contains(.experience) {
+                    self.selectedSections.append(.experience)
+                }
+            }
+        } catch {
+        }
+    }
+    
+    // MARK: - Resume
+    func saveResume(fileName: String, fileData: Data, userId: String) async throws {
+        print("🔄 Starting resume upload for user: \(userId)")
+        print("📁 File: \(fileName)")
+        print("📊 File size: \(fileData.count) bytes")
+        
+        // Upload file to Firebase Storage
+        let storageRef = storage.reference().child("resumes/\(userId)/\(UUID().uuidString)_\(fileName)")
+        
+        let metadata = StorageMetadata()
+        metadata.contentType = "application/pdf"
+        
+        print("⬆️ Uploading to Firebase Storage...")
+        let _ = try await storageRef.putDataAsync(fileData, metadata: metadata)
+        let firebaseURL = try await storageRef.downloadURL()
+        print("✅ Upload complete. Firebase URL: \(firebaseURL)")
+        
+        // Create custom domain URL for the PDF
+        let storagePath = storageRef.fullPath
+        let encodedPath = storagePath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? storagePath
+        let customURL = "https://cardinalapp.me/files/\(encodedPath)"
+        print("📎 Custom domain URL: \(customURL)")
+        
+        // Save metadata to Firestore with custom URL
+        let payload: [String: Any] = [
+            "fileName": fileName,
+            "downloadURL": customURL,
+            "firebaseURL": firebaseURL.absoluteString, // Keep original as backup
+            "uploadedAt": FieldValue.serverTimestamp()
+        ]
+        
+        print("💾 Saving metadata to Firestore...")
+        let _ = try await db.collection("users").document(userId)
+            .collection("sections").document("resume")
+            .setData(payload, merge: true)
+        print("✅ Firestore save complete")
+        
+        // Update local state
+        let resumeData = ResumeData(
+            id: "resume",
+            fileName: fileName,
+            downloadURL: customURL,
+            uploadedAt: Date()
+        )
+        
+        await MainActor.run {
+            self.resume = resumeData
+            if !self.selectedSections.contains(.resume) {
+                self.selectedSections.append(.resume)
+            }
+            print("✅ Local state updated. Resume sections: \(self.selectedSections)")
+        }
+    }
+    
+    func fetchResume(userId: String) async {
+        do {
+            let doc = try await db.collection("users").document(userId)
+                .collection("sections").document("resume")
+                .getDocument()
+            
+            if let data = doc.data() {
+                let fileName = data["fileName"] as? String ?? ""
+                let downloadURL = data["downloadURL"] as? String ?? ""
+                let timestamp = data["uploadedAt"] as? Timestamp
+                let uploadedAt = timestamp?.dateValue() ?? Date()
+                
+                let resumeData = ResumeData(
+                    id: "resume",
+                    fileName: fileName,
+                    downloadURL: downloadURL,
+                    uploadedAt: uploadedAt
+                )
+                
+                await MainActor.run {
+                    self.resume = resumeData
+                    if !self.selectedSections.contains(.resume) {
+                        self.selectedSections.append(.resume)
+                    }
+                }
+            }
+        } catch {
+        }
+    }
+    
+    // MARK: - Skills
+    func saveSkills(skillsString: String, userId: String) async throws {
+        print("🔄 Starting skills save for user: \(userId)")
+        print("🏷️ Skills input: \(skillsString)")
+        
+        // Parse comma-separated skills and clean them up
+        let skillsArray = skillsString
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        print("📋 Parsed skills: \(skillsArray)")
+        
+        // Save to Firestore
+        let payload: [String: Any] = [
+            "skills": skillsArray,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        
+        print("💾 Saving skills to Firestore...")
+        let _ = try await db.collection("users").document(userId)
+            .collection("sections").document("skills")
+            .setData(payload, merge: true)
+        print("✅ Firestore save complete")
+        
+        // Update local state
+        let skillsData = SkillsData(id: "skills", skills: skillsArray)
+        
+        await MainActor.run {
+            self.skills = skillsData
+            if !self.selectedSections.contains(.skills) {
+                self.selectedSections.append(.skills)
+            }
+            print("✅ Local state updated. Skills: \(skillsArray)")
+        }
+    }
+    
+    func fetchSkills(userId: String) async {
+        do {
+            let doc = try await db.collection("users").document(userId)
+                .collection("sections").document("skills")
+                .getDocument()
+            
+            if let data = doc.data() {
+                let skillsArray = data["skills"] as? [String] ?? []
+                
+                let skillsData = SkillsData(id: "skills", skills: skillsArray)
+                
+                await MainActor.run {
+                    self.skills = skillsData
+                    if !skillsArray.isEmpty && !self.selectedSections.contains(.skills) {
+                        self.selectedSections.append(.skills)
+                    }
+                }
+            }
+        } catch {
+        }
+    }
+    
+    // MARK: - Projects
+    func addProjectLocally(title: String, description: String?, toolsString: String, link: String?) {
+        // Parse comma-separated tools and clean them up
+        let toolsArray = toolsString.isEmpty ? [] : toolsString
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        let project = ProjectData(
+            id: UUID().uuidString,
+            title: title,
+            description: description?.isEmpty == false ? description : nil,
+            tools: toolsArray,
+            link: link?.isEmpty == false ? link : nil
+        )
+        
+        projects.append(project)
+        if selectedSections.contains(.projects) == false {
+            selectedSections.append(.projects)
+        }
+    }
+    
+    func saveProject(title: String, description: String?, toolsString: String, link: String?, userId: String) async throws {
+        print("🔄 Starting project save for user: \(userId)")
+        print("📝 Project: \(title)")
+        
+        // Parse comma-separated tools
+        let toolsArray = toolsString.isEmpty ? [] : toolsString
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        print("🔧 Tools: \(toolsArray)")
+        
+        // Save to Firestore
+        let payload: [String: Any] = [
+            "title": title,
+            "description": description?.isEmpty == false ? description! : "",
+            "tools": toolsArray,
+            "link": link?.isEmpty == false ? link! : "",
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        
+        print("💾 Saving project to Firestore...")
+        let _ = try await db.collection("users").document(userId)
+            .collection("sections").document("projects")
+            .collection("items").addDocument(data: payload)
+        print("✅ Firestore save complete")
+    }
+    
+    func fetchProjects(userId: String) async {
+        do {
+            let snapshot = try await db.collection("users").document(userId)
+                .collection("sections").document("projects")
+                .collection("items")
+                .order(by: "createdAt", descending: true)
+                .getDocuments()
+            
+            var list: [ProjectData] = []
+            for doc in snapshot.documents {
+                let data = doc.data()
+                let title = data["title"] as? String ?? ""
+                let description = data["description"] as? String
+                let tools = data["tools"] as? [String] ?? []
+                let link = data["link"] as? String
+                
+                list.append(ProjectData(
+                    id: doc.documentID,
+                    title: title,
+                    description: description?.isEmpty == false ? description : nil,
+                    tools: tools,
+                    link: link?.isEmpty == false ? link : nil
+                ))
+            }
+            
+            await MainActor.run {
+                self.projects = list
+                if !list.isEmpty && !self.selectedSections.contains(.projects) {
+                    self.selectedSections.append(.projects)
+                }
+            }
+        } catch {
+        }
     }
 }
