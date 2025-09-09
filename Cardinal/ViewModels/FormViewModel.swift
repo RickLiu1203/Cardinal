@@ -556,4 +556,166 @@ class FormViewModel: ObservableObject {
         } catch {
         }
     }
+
+    // MARK: - Delete: Sections
+    func deletePersonalDetails() async {
+        guard let userId = currentUserId else { return }
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("personalDetails")
+                .delete()
+        } catch { }
+        await MainActor.run {
+            self.personalDetails = nil
+            self.selectedSections.removeAll { $0 == .personalDetails }
+        }
+    }
+    func deleteResume() async {
+        guard let userId = currentUserId else { return }
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("resume")
+                .delete()
+        } catch { }
+        await MainActor.run {
+            self.resume = nil
+            self.selectedSections.removeAll { $0 == .resume }
+        }
+    }
+    func deleteSkills() async {
+        guard let userId = currentUserId else { return }
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("skills")
+                .delete()
+        } catch { }
+        await MainActor.run {
+            self.skills = nil
+            self.selectedSections.removeAll { $0 == .skills }
+        }
+    }
+
+    // MARK: - Delete: Items
+    func deleteExperience(id: String) async {
+        guard let userId = currentUserId else { return }
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("experiences")
+                .collection("items").document(id).delete()
+        } catch { }
+        await MainActor.run {
+            self.experiences.removeAll { $0.id == id }
+            if self.experiences.isEmpty {
+                self.selectedSections.removeAll { $0 == .experience }
+            }
+        }
+    }
+    func deleteTextBlock(id: String) async {
+        guard let userId = currentUserId else { return }
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("textBlocks")
+                .collection("items").document(id).delete()
+        } catch { }
+        await MainActor.run {
+            self.textBlocks.removeAll { $0.id == id }
+            if self.textBlocks.isEmpty {
+                self.selectedSections.removeAll { $0 == .textBlock }
+            }
+        }
+    }
+    func deleteProject(id: String) async {
+        guard let userId = currentUserId else { return }
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("projects")
+                .collection("items").document(id).delete()
+        } catch { }
+        await MainActor.run {
+            self.projects.removeAll { $0.id == id }
+            if self.projects.isEmpty {
+                self.selectedSections.removeAll { $0 == .projects }
+            }
+        }
+    }
+
+    // MARK: - Update: Items
+    func updateTextBlock(id: String, header: String, body: String) async {
+        guard let userId = currentUserId else { return }
+        let payload: [String: Any] = [
+            "header": header,
+            "body": body
+        ]
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("textBlocks")
+                .collection("items").document(id).setData(payload, merge: true)
+            await MainActor.run {
+                if let idx = self.textBlocks.firstIndex(where: { $0.id == id }) {
+                    self.textBlocks[idx] = TextBlockData(id: id, header: header, body: body)
+                }
+            }
+        } catch { }
+    }
+    func updateExperience(id: String, company: String, role: String, startDate: Date, endDate: Date?, description: String?) async {
+        guard let userId = currentUserId else { return }
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        let payload: [String: Any] = [
+            "company": company,
+            "role": role,
+            "startDateString": df.string(from: startDate),
+            "endDateString": endDate != nil ? df.string(from: endDate!) : NSNull(),
+            "description": description ?? ""
+        ]
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("experiences")
+                .collection("items").document(id).setData(payload, merge: true)
+            await MainActor.run {
+                if let idx = self.experiences.firstIndex(where: { $0.id == id }) {
+                    let startStr = df.string(from: startDate)
+                    let endStr = endDate.map { df.string(from: $0) }
+                    self.experiences[idx] = ExperienceData(id: id, company: company, role: role, startDateString: startStr, endDateString: endStr, description: description)
+                    self.experiences.sort { a, b in
+                        switch (a.endDateString, b.endDateString) {
+                        case (nil, _?): return true
+                        case (_?, nil): return false
+                        case let (l?, r?): return l > r
+                        default: return a.startDateString > b.startDateString
+                        }
+                    }
+                }
+            }
+        } catch { }
+    }
+    func updateProject(id: String, title: String, description: String?, toolsString: String, link: String?) async {
+        guard let userId = currentUserId else { return }
+        let toolsArray = toolsString.isEmpty ? [] : toolsString
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let payload: [String: Any] = [
+            "title": title,
+            "description": description?.isEmpty == false ? description! : "",
+            "tools": toolsArray,
+            "link": link?.isEmpty == false ? link! : ""
+        ]
+        do {
+            try await db.collection("users").document(userId)
+                .collection("sections").document("projects")
+                .collection("items").document(id).setData(payload, merge: true)
+            await MainActor.run {
+                if let idx = self.projects.firstIndex(where: { $0.id == id }) {
+                    self.projects[idx] = ProjectData(
+                        id: id,
+                        title: title,
+                        description: description?.isEmpty == false ? description : nil,
+                        tools: toolsArray,
+                        link: link?.isEmpty == false ? link : nil
+                    )
+                }
+            }
+        } catch { }
+    }
 }

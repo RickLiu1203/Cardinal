@@ -11,6 +11,8 @@ import FirebaseAuth
 
 struct ExperienceSheetView: View {
     var onAdded: (() -> Void)? = nil
+    var initialData: FormViewModel.ExperienceData? = nil
+    var isEditing: Bool = false
     @EnvironmentObject var formViewModel: FormViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var company: String = ""
@@ -19,9 +21,10 @@ struct ExperienceSheetView: View {
     @State private var hasEndDate: Bool = false
     @State private var endDate: Date = Date()
     @State private var descriptionText: String = ""
+    @State private var didPrefill: Bool = false
     var body: some View {
         VStack(spacing: 16) {
-            Text("Experience")
+            Text(isEditing ? "Edit Experience" : "Experience")
                 .font(.title2)
                 .fontWeight(.bold)
             FormFieldView(title: "Company", text: $company, inputType: .text, isMandatory: true)
@@ -41,12 +44,19 @@ struct ExperienceSheetView: View {
                 }
             }
             FormFieldView(title: "Description", text: $descriptionText, inputType: .text, isMandatory: false, multiline: true)
-            Button("Add Experience") {
-                formViewModel.addExperienceLocally(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText)
-                onAdded?()
-                dismiss()
-                if let uid = Auth.auth().currentUser?.uid {
-                    Task { try? await formViewModel.saveExperience(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText, userId: uid) }
+            Button(isEditing ? "Save Changes" : "Add Experience") {
+                if isEditing, let id = initialData?.id {
+                    Task {
+                        await formViewModel.updateExperience(id: id, company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText)
+                        dismiss()
+                    }
+                } else {
+                    formViewModel.addExperienceLocally(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText)
+                    onAdded?()
+                    dismiss()
+                    if let uid = Auth.auth().currentUser?.uid {
+                        Task { try? await formViewModel.saveExperience(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText, userId: uid) }
+                    }
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -56,6 +66,26 @@ struct ExperienceSheetView: View {
         .padding()
         .presentationDragIndicator(.visible)
         .presentationDetents([.medium, .large])
+        .onAppear {
+            if !didPrefill, let initial = initialData {
+                company = initial.company
+                role = initial.role
+                // Parse dates from stored strings
+                let df = DateFormatter()
+                df.dateStyle = .medium
+                if let parsedStart = df.date(from: initial.startDateString) {
+                    startDate = parsedStart
+                }
+                if let endStr = initial.endDateString, let parsedEnd = df.date(from: endStr) {
+                    hasEndDate = true
+                    endDate = parsedEnd
+                } else {
+                    hasEndDate = false
+                }
+                descriptionText = initial.description ?? ""
+                didPrefill = true
+            }
+        }
     }
     private var isValid: Bool {
         !company.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&

@@ -190,206 +190,41 @@ struct PortfolioView: View {
         switch sectionType {
         case .personalDetails:
             if let pd = effectivePersonalDetails {
-                Section(header: Text("Personal Details")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("\(pd.firstName) \(pd.lastName)")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                        Text(pd.email)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        if !pd.phoneNumber.isEmpty {
-                            Text(pd.phoneNumber)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        if !pd.linkedIn.isEmpty {
-                            Link(destination: URL(string: pd.linkedIn) ?? URL(string: "https://linkedin.com")!) {
-                                HStack {
-                                    Image(systemName: "link")
-                                        .font(.caption)
-                                    Text("LinkedIn")
-                                        .font(.subheadline)
-                                }
-                                .foregroundColor(.blue)
-                            }
-                        }
-                        if !pd.github.isEmpty {
-                            Link(destination: URL(string: pd.github) ?? URL(string: "https://github.com")!) {
-                                HStack {
-                                    Image(systemName: "link")
-                                        .font(.caption)
-                                    Text("GitHub")
-                                        .font(.subheadline)
-                                }
-                                .foregroundColor(.blue)
-                            }
-                        }
-                        if !pd.website.isEmpty {
-                            Link(destination: URL(string: pd.website) ?? URL(string: "https://example.com")!) {
-                                HStack {
-                                    Image(systemName: "link")
-                                        .font(.caption)
-                                    Text("Website")
-                                        .font(.subheadline)
-                                }
-                                .foregroundColor(.blue)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
+                PersonalDetailsView(personalDetails: pd)
             }
             
         case .textBlock:
             let blocks = effectiveTextBlocks
             if !blocks.isEmpty {
-                Section(header: Text("Text Blocks")) {
-                    ForEach(blocks) { block in
-                        VStack(alignment: .leading, spacing: 6) {
-                            if !block.header.isEmpty {
-                                Text(block.header)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                            }
-                            if !block.body.isEmpty {
-                                Text(block.body)
-                                    .font(.footnote)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
+                TextView(blocks: blocks)
             }
             
         case .experience:
             let exps = effectiveExperiences
             if !exps.isEmpty {
-                Section(header: Text("Experience")) {
-                    ForEach(exps) { exp in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(exp.role)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                            Text(exp.company)
-                                .font(.footnote)
-                            Text(formatPeriod(startDateString: exp.startDateString, endDateString: exp.endDateString))
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-                            if let desc = exp.description, !desc.isEmpty {
-                                Text(desc)
-                                    .font(.footnote)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
+                ExperiencesView(experiences: exps)
             }
             
         case .resume:
             if let resume = effectiveResume {
-                Section(header: Text("Resume")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "doc.fill")
-                                .foregroundColor(.blue)
-                                .font(.title2)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(resume.fileName)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                Text("Uploaded: \(resume.uploadedAt)")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Button("View") {
-                                if let url = URL(string: resume.downloadURL) {
-                                    #if APPCLIP
-                                    // For App Clip, use SFSafariViewController for in-app PDF viewing
-                                    presentPDFInSafariView(url: url)
-                                    #else
-                                    // For main app, open in external app
-                                    UIApplication.shared.open(url)
-                                    #endif
-                                }
-                            }
-                            .font(.footnote)
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                        }
-                    }
-                    .padding(.vertical, 4)
+                ResumeButtonView(resume: resume) { url in
+                    #if APPCLIP
+                    presentPDFInSafariView(url: url)
+                    #else
+                    UIApplication.shared.open(url)
+                    #endif
                 }
             }
             
         case .skills:
             if let skillsData = effectiveSkills {
-                Section(header: Text("Skills")) {
-                    LazyVGrid(columns: [
-                        GridItem(.adaptive(minimum: 80), spacing: 8)
-                    ], spacing: 8) {
-                        ForEach(skillsData.skills, id: \.self) { skill in
-                            Text(skill)
-                                .font(.footnote)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
-                                .foregroundColor(.blue)
-                                .cornerRadius(16)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
+                SkillsView(skills: skillsData)
             }
             
         case .projects:
             let projects = effectiveProjects
             if !projects.isEmpty {
-                Section(header: Text("Projects")) {
-                    ForEach(projects) { project in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(project.title)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                            
-                            if let description = project.description, !description.isEmpty {
-                                Text(description)
-                                    .font(.footnote)
-                            }
-                            
-                            if !project.tools.isEmpty {
-                                LazyVGrid(columns: [
-                                    GridItem(.adaptive(minimum: 60), spacing: 6)
-                                ], spacing: 6) {
-                                    ForEach(project.tools, id: \.self) { tool in
-                                        Text(tool)
-                                            .font(.caption)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.green.opacity(0.1))
-                                            .foregroundColor(.green)
-                                            .cornerRadius(12)
-                                    }
-                                }
-                            }
-                            
-                            if let link = project.link, !link.isEmpty {
-                                Link(destination: URL(string: link) ?? URL(string: "https://example.com")!) {
-                                    HStack {
-                                        Image(systemName: "link")
-                                            .font(.caption)
-                                        Text(link)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
+                ProjectsView(projects: projects)
             }
         }
     }

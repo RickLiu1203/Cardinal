@@ -11,43 +11,69 @@ import FirebaseAuth
 
 struct DetailsFormView: View {
     @EnvironmentObject var formViewModel: FormViewModel
-    @State private var showingEditorForSection: FormViewModel.SectionType? = nil
+    @State private var editorRoute: EditorRoute? = nil
+    struct EditorRoute: Identifiable, Equatable {
+        enum Kind: Equatable {
+            case section(FormViewModel.SectionType)
+            case editExperience(FormViewModel.ExperienceData)
+            case editTextBlock(FormViewModel.TextBlockData)
+            case editProject(FormViewModel.ProjectData)
+        }
+        let kind: Kind
+        var id: String {
+            switch kind {
+            case .section(let type): return "section-\(type.rawValue)"
+            case .editExperience(let exp): return "exp-\(exp.id)"
+            case .editTextBlock(let block): return "tb-\(block.id)"
+            case .editProject(let project): return "prj-\(project.id)"
+            }
+        }
+        static func == (lhs: EditorRoute, rhs: EditorRoute) -> Bool { lhs.id == rhs.id }
+    }
     var body: some View {
         List {
             AddSectionView()
             if formViewModel.selectedSections.isEmpty == false {
                 Section {
                     ForEach(formViewModel.selectedSections, id: \.id) { section in
-                        Button(action: { showingEditorForSection = section }) {
-                            switch section {
+                        switch section {
                         case .personalDetails:
-                            if let pd = formViewModel.personalDetails {
-                                VStack(alignment: .leading, spacing: 4) {
+                            Group {
+                                if let pd = formViewModel.personalDetails {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Personal Details")
+                                            .font(.headline)
+                                        Text("Name: \(pd.firstName) \(pd.lastName)")
+                                            .font(.subheadline)
+                                        Text("Email: \(pd.email)")
+                                            .font(.subheadline)
+                                        if !pd.phoneNumber.isEmpty {
+                                            Text("Phone: \(pd.phoneNumber)")
+                                                .font(.subheadline)
+                                        }
+                                        if !pd.linkedIn.isEmpty {
+                                            Text("LinkedIn: \(pd.linkedIn)")
+                                                .font(.subheadline)
+                                        }
+                                        if !pd.github.isEmpty {
+                                            Text("GitHub: \(pd.github)")
+                                                .font(.subheadline)
+                                        }
+                                        if !pd.website.isEmpty {
+                                            Text("Website: \(pd.website)")
+                                                .font(.subheadline)
+                                        }
+                                    }
+                                } else {
                                     Text("Personal Details")
-                                        .font(.headline)
-                                    Text("Name: \(pd.firstName) \(pd.lastName)")
-                                        .font(.subheadline)
-                                    Text("Email: \(pd.email)")
-                                        .font(.subheadline)
-                                    if !pd.phoneNumber.isEmpty {
-                                        Text("Phone: \(pd.phoneNumber)")
-                                            .font(.subheadline)
-                                    }
-                                    if !pd.linkedIn.isEmpty {
-                                        Text("LinkedIn: \(pd.linkedIn)")
-                                            .font(.subheadline)
-                                    }
-                                    if !pd.github.isEmpty {
-                                        Text("GitHub: \(pd.github)")
-                                            .font(.subheadline)
-                                    }
-                                    if !pd.website.isEmpty {
-                                        Text("Website: \(pd.website)")
-                                            .font(.subheadline)
-                                    }
                                 }
-                            } else {
-                                Text("Personal Details")
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture { editorRoute = EditorRoute(kind: .section(.personalDetails)) }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await formViewModel.deletePersonalDetails() }
+                                } label: { Label("Delete", systemImage: "trash") }
                             }
                         case .experience:
                             VStack(alignment: .leading, spacing: 4) {
@@ -65,12 +91,19 @@ struct DetailsFormView: View {
                                                 .font(.footnote)
                                                 .foregroundColor(.secondary)
                                             if let desc = exp.description, desc.isEmpty == false {
-            								Text(desc)
+                                                Text(desc)
                                                     .font(.footnote)
                                                     .lineLimit(2)
                                             }
                                         }
                                         .padding(.vertical, 2)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture { editorRoute = EditorRoute(kind: .editExperience(exp)) }
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button(role: .destructive) {
+                                                Task { await formViewModel.deleteExperience(id: exp.id) }
+                                            } label: { Label("Delete", systemImage: "trash") }
+                                        }
                                     }
                                 }
                             }
@@ -89,6 +122,13 @@ struct DetailsFormView: View {
                                             }
                                         }
                                         .padding(.vertical, 2)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture { editorRoute = EditorRoute(kind: .editTextBlock(block)) }
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button(role: .destructive) {
+                                                Task { await formViewModel.deleteTextBlock(id: block.id) }
+                                            } label: { Label("Delete", systemImage: "trash") }
+                                        }
                                     }
                                 }
                             }
@@ -116,6 +156,13 @@ struct DetailsFormView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
+                            .contentShape(Rectangle())
+                            .onTapGesture { editorRoute = EditorRoute(kind: .section(.resume)) }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await formViewModel.deleteResume() }
+                                } label: { Label("Delete", systemImage: "trash") }
+                            }
                         case .skills:
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Skills")
@@ -140,6 +187,13 @@ struct DetailsFormView: View {
                                         .font(.footnote)
                                         .foregroundColor(.secondary)
                                 }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture { editorRoute = EditorRoute(kind: .section(.skills)) }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await formViewModel.deleteSkills() }
+                                } label: { Label("Delete", systemImage: "trash") }
                             }
                         case .projects:
                             VStack(alignment: .leading, spacing: 4) {
@@ -182,13 +236,19 @@ struct DetailsFormView: View {
                                             }
                                         }
                                         .padding(.vertical, 2)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture { editorRoute = EditorRoute(kind: .editProject(project)) }
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button(role: .destructive) {
+                                                Task { await formViewModel.deleteProject(id: project.id) }
+                                            } label: { Label("Delete", systemImage: "trash") }
+                                        }
                                     }
                                 } else {
                                     Text("No projects added")
                                         .font(.footnote)
                                         .foregroundColor(.secondary)
                                 }
-                            }
                             }
                         }
                     }
@@ -198,8 +258,8 @@ struct DetailsFormView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Details")
-        .sheet(item: $showingEditorForSection) { section in
-            editorSheet(for: section)
+        .sheet(item: $editorRoute) { route in
+            editorSheet(for: route)
         }
         .onAppear {
             if let uid = Auth.auth().currentUser?.uid {
@@ -220,25 +280,37 @@ struct DetailsFormView: View {
     }
 
     @ViewBuilder
-    private func editorSheet(for section: FormViewModel.SectionType) -> some View {
-        switch section {
-        case .personalDetails:
-            PersonalDetailsSheetView(onAdded: nil, initialData: formViewModel.personalDetails, isEditing: true)
+    private func editorSheet(for route: EditorRoute) -> some View {
+        switch route.kind {
+        case .section(let section):
+            switch section {
+            case .personalDetails:
+                PersonalDetailsSheetView(onAdded: nil, initialData: formViewModel.personalDetails, isEditing: true)
+                    .environmentObject(formViewModel)
+            case .experience:
+                ExperienceSheetView(onAdded: nil)
+                    .environmentObject(formViewModel)
+            case .projects:
+                ProjectSheetView(onAdded: nil)
+                    .environmentObject(formViewModel)
+            case .skills:
+                SkillsSheetView(onAdded: nil)
+                    .environmentObject(formViewModel)
+            case .resume:
+                ResumeSheetView(onAdded: nil)
+                    .environmentObject(formViewModel)
+            case .textBlock:
+                TextBlockSheetView(onAdded: nil)
+                    .environmentObject(formViewModel)
+            }
+        case .editExperience(let exp):
+            ExperienceSheetView(onAdded: nil, initialData: exp, isEditing: true)
                 .environmentObject(formViewModel)
-        case .experience:
-            ExperienceSheetView(onAdded: nil)
+        case .editTextBlock(let block):
+            TextBlockSheetView(onAdded: nil, initialData: block, isEditing: true)
                 .environmentObject(formViewModel)
-        case .projects:
-            ProjectSheetView(onAdded: nil)
-                .environmentObject(formViewModel)
-        case .skills:
-            SkillsSheetView(onAdded: nil)
-                .environmentObject(formViewModel)
-        case .resume:
-            ResumeSheetView(onAdded: nil)
-                .environmentObject(formViewModel)
-        case .textBlock:
-            TextBlockSheetView(onAdded: nil)
+        case .editProject(let project):
+            ProjectSheetView(onAdded: nil, initialData: project, isEditing: true)
                 .environmentObject(formViewModel)
         }
     }

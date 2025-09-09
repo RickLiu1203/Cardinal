@@ -66,6 +66,13 @@
 				Models/PortfolioModel.swift,
 				ViewModels/PortfolioViewModel.swift,
 				Views/PortfolioView/PortfolioView.swift,
+				Views/PortfolioView/Sections/ContactButtonView.swift,
+				Views/PortfolioView/Sections/ExperiencesView.swift,
+				Views/PortfolioView/Sections/PersonalDetailsView.swift,
+				Views/PortfolioView/Sections/ProjectsView.swift,
+				Views/PortfolioView/Sections/ResumeButtonView.swift,
+				Views/PortfolioView/Sections/SkillsView.swift,
+				Views/PortfolioView/Sections/TextView.swift,
 			);
 			target = B8A645372E6F329400A55206 /* CardinalPortfolioClip */;
 		};

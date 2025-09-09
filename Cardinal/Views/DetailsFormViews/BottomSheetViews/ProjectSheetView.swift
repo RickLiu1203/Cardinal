@@ -10,6 +10,8 @@ import SwiftUI
 
 struct ProjectSheetView: View {
     var onAdded: (() -> Void)? = nil
+    var initialData: FormViewModel.ProjectData? = nil
+    var isEditing: Bool = false
     @EnvironmentObject var formViewModel: FormViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
@@ -18,6 +20,7 @@ struct ProjectSheetView: View {
     @State private var link = ""
     @State private var isUploading = false
     @State private var errorMessage: String?
+    @State private var didPrefill: Bool = false
     
     private var isValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -25,7 +28,7 @@ struct ProjectSheetView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("Add Project")
+            Text(isEditing ? "Edit Project" : "Add Project")
                 .font(.title2)
                 .fontWeight(.bold)
             
@@ -76,19 +79,21 @@ struct ProjectSheetView: View {
                 }
             }
             
-            Button(isUploading ? "Saving..." : "Add Project") {
+            Button(isUploading ? "Saving..." : (isEditing ? "Save Changes" : "Add Project")) {
                 Task {
                     isUploading = true
                     errorMessage = nil
                     
                     do {
-                        if let uid = formViewModel.currentUserId {
-                            // Add locally first for immediate UI update
+                        if isEditing, let id = initialData?.id {
+                            await formViewModel.updateProject(id: id, title: title, description: description, toolsString: toolsInput, link: link)
+                            await MainActor.run {
+                                isUploading = false
+                                dismiss()
+                            }
+                        } else if let uid = formViewModel.currentUserId {
                             formViewModel.addProjectLocally(title: title, description: description, toolsString: toolsInput, link: link)
-                            
-                            // Save to Firestore
                             try await formViewModel.saveProject(title: title, description: description, toolsString: toolsInput, link: link, userId: uid)
-                            
                             await MainActor.run {
                                 isUploading = false
                                 onAdded?()
@@ -115,5 +120,14 @@ struct ProjectSheetView: View {
         .padding()
         .presentationDragIndicator(.visible)
         .presentationDetents([.medium, .large])
+        .onAppear {
+            if !didPrefill, let initial = initialData {
+                title = initial.title
+                description = initial.description ?? ""
+                toolsInput = initial.tools.joined(separator: ", ")
+                link = initial.link ?? ""
+                didPrefill = true
+            }
+        }
     }
 }
