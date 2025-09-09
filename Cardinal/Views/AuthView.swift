@@ -6,94 +6,122 @@
 //
 
 import SwiftUI
-import FirebaseCore
 import FirebaseAuth
-import GoogleSignIn
 
 struct AuthView: View {
+    @StateObject private var authViewModel = AuthViewModel()
+    @State private var email: String = ""
+    @State private var password: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
+    @State private var isSignUpMode: Bool = false
     
     var body: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 8) {
-                Button {
-                    signInWithGoogle()
-                } label: {
-                    HStack {
-                        Image(systemName: "g.circle.fill")
-                        Text(isLoading ? "Signing in…" : "Continue with Google")
-                            .fontWeight(.semibold)
+        NavigationStack {
+            VStack(spacing: 24) {
+                VStack(spacing: 16) {
+                    Text(isSignUpMode ? "Create Account" : "Sign In")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    
+                    VStack(spacing: 12) {
+                        TextField("Email", text: $email)
+                            .textFieldStyle(.roundedBorder)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        
+                        SecureField("Password", text: $password)
+                            .textFieldStyle(.roundedBorder)
+                        
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .font(.footnote)
+                        }
                     }
-                    .frame(maxWidth: .infinity)
+                    
+                    VStack(spacing: 12) {
+                        Button {
+                            if isSignUpMode {
+                                signUp()
+                            } else {
+                                signIn()
+                            }
+                        } label: {
+                            HStack {
+                                if isLoading {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                }
+                                Text(isLoading ? "Please wait..." : (isSignUpMode ? "Create Account" : "Sign In"))
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isLoading || email.isEmpty || password.isEmpty)
+                        
+                        Button {
+                            isSignUpMode.toggle()
+                            errorMessage = nil
+                        } label: {
+                            Text(isSignUpMode ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
+                                .font(.footnote)
+                        }
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(isLoading)
                 
-                if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .font(.footnote)
-                }
+                Spacer()
             }
+            .padding()
         }
-        .padding()
     }
 }
 
-// MARK: - Google Sign-In
+// MARK: - Authentication Methods
 private extension AuthView {
-    func signInWithGoogle() {
+    func signIn() {
         guard !isLoading else { return }
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            errorMessage = "Missing Firebase client ID. Check GoogleService-Info.plist."
-            return
-        }
-
-        let configuration = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = configuration
-
-        guard let presentingViewController = topViewController() else {
-            errorMessage = "Unable to find a presenting view controller."
-            return
-        }
-
+        
         isLoading = true
         errorMessage = nil
-
+        
         Task {
             do {
-                let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController)
-                guard let idToken = result.user.idToken?.tokenString else {
+                try await authViewModel.signIn(email: email, password: password)
+                await MainActor.run {
                     isLoading = false
-                    errorMessage = "Google Sign-In did not return an ID token."
-                    return
                 }
-                let accessToken = result.user.accessToken.tokenString
-                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-                _ = try await Auth.auth().signIn(with: credential)
-                isLoading = false
             } catch {
-                isLoading = false
-                errorMessage = error.localizedDescription
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                }
             }
         }
     }
-
-    func topViewController(base: UIViewController? = UIApplication.shared.connectedScenes
-        .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-        .first?.rootViewController) -> UIViewController? {
-        if let nav = base as? UINavigationController {
-            return topViewController(base: nav.visibleViewController)
+    
+    func signUp() {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        Task {
+            do {
+                try await authViewModel.signUp(email: email, password: password)
+                await MainActor.run {
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                }
+            }
         }
-        if let tab = base as? UITabBarController, let selected = tab.selectedViewController {
-            return topViewController(base: selected)
-        }
-        if let presented = base?.presentedViewController {
-            return topViewController(base: presented)
-        }
-        return base
     }
 }
 

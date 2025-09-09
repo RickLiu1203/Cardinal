@@ -7,7 +7,6 @@
 
 import SwiftUI
 import FirebaseAuth
-import GoogleSignIn
 
 class AuthViewModel: ObservableObject {
     @Published var currentUser: User? = Auth.auth().currentUser
@@ -28,7 +27,15 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func handleGoogleSignInURL(_ url: URL) {
-        GIDSignIn.sharedInstance.handle(url)
+    func signIn(email: String, password: String) async throws {
+        _ = try await Auth.auth().signIn(withEmail: email, password: password)
+    }
+    
+    func signUp(email: String, password: String) async throws {
+        _ = try await Auth.auth().createUser(withEmail: email, password: password)
+    }
+    
+    func signOut() throws {
+        try Auth.auth().signOut()
     }
 }

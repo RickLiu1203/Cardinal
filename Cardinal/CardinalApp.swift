@@ -7,7 +7,6 @@
 
 import SwiftUI
 import FirebaseCore
-import GoogleSignIn
 import CoreText
 
 @main
@@ -17,16 +16,6 @@ struct CardinalApp: App {
     
     init() {
         FirebaseApp.configure()
-        UIFont.registerCustomFonts()
-        
-        // Debug: List available fonts
-        print("🔍 Available font families:")
-        for family in UIFont.familyNames.sorted() {
-            print("Family: \(family)")
-            for name in UIFont.fontNames(forFamilyName: family) {
-                print("  - \(name)")
-            }
-        }
     }
     
     var body: some Scene {
@@ -38,9 +27,6 @@ struct CardinalApp: App {
                 } else {
                     AuthView()
                 }
-            }
-            .onOpenURL { url in
-                authViewModel.handleGoogleSignInURL(url)
             }
             .onChange(of: authViewModel.currentUser?.uid) { _, newUid in
                 // Clear stale data when the user changes (logout/login or account switch)
