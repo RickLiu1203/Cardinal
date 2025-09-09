@@ -52,6 +52,7 @@ final class PortfolioViewModel: ObservableObject {
             await MainActor.run {
                 self.personalDetails = PersonalDetails(firstName: decoded.firstName,
                                                        lastName: decoded.lastName,
+                                                       subtitle: decoded.subtitle,
                                                        email: decoded.email,
                                                        linkedIn: decoded.linkedIn,
                                                        phoneNumber: decoded.phoneNumber,

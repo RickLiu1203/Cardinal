@@ -12,9 +12,14 @@ struct ExperiencesView: View {
 
     var body: some View {
         if !experiences.isEmpty {
-            Section(header: Text("Experience")) {
+            Section() {
+                VStack(alignment: .leading, spacing: 16) {  
+                Text("Experience")
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                Text("a timeline of my career")
+                    .font(.custom("MabryPro-Regular", size: 16))
                 ForEach(experiences) { exp in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 16) {
                         Text(exp.role)
                             .font(.subheadline)
                             .fontWeight(.semibold)
@@ -26,10 +31,11 @@ struct ExperiencesView: View {
                         if let desc = exp.description, !desc.isEmpty {
                             Text(desc)
                                 .font(.footnote)
+                            }
                         }
                     }
-                    .padding(.vertical, 2)
                 }
+                .padding(36)
             }
         }
     }

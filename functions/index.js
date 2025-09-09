@@ -136,6 +136,7 @@ exports.getPortfolio = onRequest(async (req, res) => {
       return res.json({
         firstName: data.firstName || "",
         lastName: data.lastName || "",
+        subtitle: data.subtitle || "",
         email: data.email || "",
         linkedIn: data.linkedIn || "",
         phoneNumber: data.phoneNumber || "",

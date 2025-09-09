@@ -30,6 +30,7 @@ struct CardinalPortfolioClipApp: App {
                         overridePersonalDetails: .init(
                             firstName: pd.firstName,
                             lastName: pd.lastName,
+                            subtitle: pd.subtitle,
                             email: pd.email,
                             linkedIn: pd.linkedIn,
                             phoneNumber: pd.phoneNumber,

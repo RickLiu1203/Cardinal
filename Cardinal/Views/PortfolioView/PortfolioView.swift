@@ -17,7 +17,6 @@ struct PortfolioView: View {
         case experience
         case projects
         case skills
-        case resume
         case about
         var id: String { rawValue }
     }
@@ -25,6 +24,7 @@ struct PortfolioView: View {
     struct PresentablePersonalDetails: Equatable {
         let firstName: String
         let lastName: String
+        let subtitle: String
         let email: String
         let linkedIn: String
         let phoneNumber: String
@@ -96,7 +96,7 @@ struct PortfolioView: View {
         if let injected = overridePersonalDetails { return injected }
         #if !APPCLIP
         if let pd = formViewModel.personalDetails {
-            return .init(firstName: pd.firstName, lastName: pd.lastName, email: pd.email, linkedIn: pd.linkedIn, phoneNumber: pd.phoneNumber, github: pd.github, website: pd.website)
+            return .init(firstName: pd.firstName, lastName: pd.lastName, subtitle: pd.subtitle, email: pd.email, linkedIn: pd.linkedIn, phoneNumber: pd.phoneNumber, github: pd.github, website: pd.website)
         }
         #endif
         return nil
@@ -163,7 +163,7 @@ struct PortfolioView: View {
         if let injectedOrder = overrideSectionOrder {
             return injectedOrder.filter { sectionHasData($0) }
         } else {
-            let defaultOrder: [SectionType] = [.personalDetails, .about, .experience, .resume, .skills, .projects]
+            let defaultOrder: [SectionType] = [.personalDetails, .about, .experience, .skills, .projects]
             return defaultOrder.filter { sectionHasData($0) }
         }
         #endif
@@ -177,8 +177,6 @@ struct PortfolioView: View {
             return effectiveAbout != nil
         case .experience:
             return !effectiveExperiences.isEmpty
-        case .resume:
-            return effectiveResume != nil
         case .skills:
             return effectiveSkills != nil
         case .projects:
@@ -197,7 +195,9 @@ struct PortfolioView: View {
             
         case .about:
             if let about = effectiveAbout {
-                AboutView(about: about)
+                AboutView(about: about, resume: effectiveResume, onViewTapped: { url in
+                    UIApplication.shared.open(url)
+                })
                     .foregroundColor(Color("TextPrimary"))
             }
             
@@ -208,13 +208,6 @@ struct PortfolioView: View {
                     .foregroundColor(Color("TextPrimary"))
             }
             
-        case .resume:
-            if let resume = effectiveResume {
-                ResumeButtonView(resume: resume) { url in
-                    UIApplication.shared.open(url)
-                }
-                    .foregroundColor(Color("TextPrimary"))
-            }
             
         case .skills:
             if let skillsData = effectiveSkills {
@@ -234,7 +227,7 @@ struct PortfolioView: View {
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(effectiveSectionOrder, id: \.id) { sectionType in
                         sectionView(for: sectionType)
                     }
@@ -307,6 +300,7 @@ struct SafariView: UIViewControllerRepresentable {
         overridePersonalDetails: PortfolioView.PresentablePersonalDetails(
             firstName: "John",
             lastName: "Doe",
+            subtitle: "Computer Engineering @ UWaterloo",
             email: "john.doe@example.com",
             linkedIn: "https://linkedin.com/in/johndoe",
             phoneNumber: "+1 (555) 123-4567",
@@ -314,8 +308,8 @@ struct SafariView: UIViewControllerRepresentable {
             website: "https://johndoe.dev"
         ),
         overrideAbout: PortfolioView.PresentableAbout(
-            header: "About Me",
-            subtitle: "Software Developer",
+            header: "HIGHLIGHTS",
+            subtitle: "what i'm most proud of",
             body: "I'm a passionate software developer with experience in iOS development and web technologies."
         ),
         overrideExperiences: [
@@ -360,7 +354,7 @@ struct SafariView: UIViewControllerRepresentable {
                 link: "https://apps.apple.com/app/taskmanager"
             )
         ],
-        overrideSectionOrder: [.personalDetails, .about, .experience, .resume, .skills, .projects]
+        overrideSectionOrder: [.personalDetails, .about, .experience, .skills, .projects]
     )
 }
 

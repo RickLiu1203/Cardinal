@@ -17,6 +17,7 @@ struct PersonalDetailsSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var firstName: String = ""
     @State private var lastName: String = ""
+    @State private var subtitle: String = ""
     @State private var email: String = ""
     @State private var linkedIn: String = ""
     @State private var phoneNumber: String = ""
@@ -33,6 +34,7 @@ struct PersonalDetailsSheetView: View {
                 VStack(spacing: 16) {
                     FormFieldView(title: "First Name", text: $firstName, inputType: .text, isMandatory: true)
                     FormFieldView(title: "Last Name", text: $lastName, inputType: .text, isMandatory: true)
+                    FormFieldView(title: "Subtitle", text: $subtitle, inputType: .text, isMandatory: false)
                     FormFieldView(title: "Email", text: $email, inputType: .email, isMandatory: true)
                     FormFieldView(title: "Phone Number", text: $phoneNumber, inputType: .number, isMandatory: false)
                     FormFieldView(title: "LinkedIn", text: $linkedIn, inputType: .url, isMandatory: false)
@@ -43,7 +45,7 @@ struct PersonalDetailsSheetView: View {
             
             Button(isEditing ? "Save Changes" : "Add Section") {
                 Task {
-                    let data = FormViewModel.PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn, phoneNumber: phoneNumber, github: github, website: website)
+                    let data = FormViewModel.PersonalDetailsData(firstName: firstName, lastName: lastName, subtitle: subtitle, email: email, linkedIn: linkedIn, phoneNumber: phoneNumber, github: github, website: website)
                     await MainActor.run {
                         formViewModel.personalDetails = data
                         if !isEditing {
@@ -68,6 +70,7 @@ struct PersonalDetailsSheetView: View {
             if !didPrefill, let existing = initialData {
                 firstName = existing.firstName
                 lastName = existing.lastName
+                subtitle = existing.subtitle
                 email = existing.email
                 linkedIn = existing.linkedIn
                 phoneNumber = existing.phoneNumber

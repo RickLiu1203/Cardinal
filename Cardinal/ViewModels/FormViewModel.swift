@@ -67,6 +67,7 @@ class FormViewModel: ObservableObject {
     struct PersonalDetailsData: Equatable {
         let firstName: String
         let lastName: String
+        let subtitle: String
         let email: String
         let linkedIn: String
         let phoneNumber: String
@@ -172,6 +173,7 @@ class FormViewModel: ObservableObject {
         let payload: [String: Any] = [
             "firstName": data.firstName,
             "lastName": data.lastName,
+            "subtitle": data.subtitle,
             "email": data.email,
             "linkedIn": data.linkedIn,
             "phoneNumber": data.phoneNumber,
@@ -189,12 +191,13 @@ class FormViewModel: ObservableObject {
             if let data = snapshot.data() {
                 let firstName = data["firstName"] as? String ?? ""
                 let lastName = data["lastName"] as? String ?? ""
+                let subtitle = data["subtitle"] as? String ?? ""
                 let email = data["email"] as? String ?? ""
                 let linkedIn = data["linkedIn"] as? String ?? ""
                 let phoneNumber = data["phoneNumber"] as? String ?? ""
                 let github = data["github"] as? String ?? ""
                 let website = data["website"] as? String ?? ""
-                let model = PersonalDetailsData(firstName: firstName, lastName: lastName, email: email, linkedIn: linkedIn, phoneNumber: phoneNumber, github: github, website: website)
+                let model = PersonalDetailsData(firstName: firstName, lastName: lastName, subtitle: subtitle, email: email, linkedIn: linkedIn, phoneNumber: phoneNumber, github: github, website: website)
                 await MainActor.run {
                     self.personalDetails = model
                     if !self.selectedSections.contains(.personalDetails) {

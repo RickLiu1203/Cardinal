@@ -10,6 +10,7 @@ import Foundation
 struct PersonalDetails: Codable, Equatable {
     let firstName: String
     let lastName: String
+    let subtitle: String
     let email: String
     let linkedIn: String
     let phoneNumber: String
@@ -50,6 +51,7 @@ struct ProjectItem: Codable, Equatable, Identifiable {
 struct PortfolioResponse: Codable, Equatable {
     let firstName: String
     let lastName: String
+    let subtitle: String
     let email: String
     let linkedIn: String
     let phoneNumber: String
@@ -69,13 +71,14 @@ enum PortfolioPayloadParser {
         func q(_ name: String) -> String { comps?.queryItems?.first(where: { $0.name == name })?.value ?? "" }
         let first = q("fn")
         let last = q("ln")
+        let subtitle = q("st")
         let email = q("em")
         let li = q("li")
         let phone = q("ph")
         let github = q("gh")
         let website = q("ws")
         if [first, last, email, li, phone, github, website].contains(where: { !$0.isEmpty }) {
-            return PersonalDetails(firstName: first, lastName: last, email: email, linkedIn: li, phoneNumber: phone, github: github, website: website)
+            return PersonalDetails(firstName: first, lastName: last, subtitle: subtitle, email: email, linkedIn: li, phoneNumber: phone, github: github, website: website)
         }
         return nil
     }
@@ -83,13 +86,14 @@ enum PortfolioPayloadParser {
     static func from(payload: [String: String]) -> PersonalDetails? {
         let first = payload["firstName"] ?? payload["fn"] ?? ""
         let last = payload["lastName"] ?? payload["ln"] ?? ""
+        let subtitle = payload["subtitle"] ?? payload["st"] ?? ""
         let email = payload["email"] ?? payload["em"] ?? ""
         let li = payload["linkedIn"] ?? payload["li"] ?? ""
         let phone = payload["phoneNumber"] ?? payload["ph"] ?? ""
         let github = payload["github"] ?? payload["gh"] ?? ""
         let website = payload["website"] ?? payload["ws"] ?? ""
         if [first, last, email, li, phone, github, website].contains(where: { !$0.isEmpty }) {
-            return PersonalDetails(firstName: first, lastName: last, email: email, linkedIn: li, phoneNumber: phone, github: github, website: website)
+            return PersonalDetails(firstName: first, lastName: last, subtitle: subtitle, email: email, linkedIn: li, phoneNumber: phone, github: github, website: website)
         }
         return nil
     }

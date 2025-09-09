@@ -9,28 +9,55 @@ import SwiftUI
 
 struct AboutView: View {
     let about: PortfolioView.PresentableAbout?
+    let resume: PortfolioView.PresentableResume?
+    let onViewTapped: ((URL) -> Void)?
 
     var body: some View {
         if let about = about {
             Section() {
-                VStack(alignment: .leading, spacing: 6) {
-                    if !about.header.isEmpty {
-                        Text(about.header)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                    }
-                    if !about.subtitle.isEmpty {
-                        Text(about.subtitle)
-                            .font(.footnote)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 28) {
+                    if !about.header.isEmpty || !about.subtitle.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            if !about.header.isEmpty {
+                                Text(about.header)
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                            }
+                            if !about.subtitle.isEmpty {
+                                Text(about.subtitle)
+                                    .font(.custom("MabryPro-Regular", size: 20))
+                            }
+                        }
                     }
                     if !about.body.isEmpty {
                         Text(about.body)
-                            .font(.footnote)
+                            .font(.custom("MabryPro-Light", size: 18))
+                            .lineSpacing(4)
+                    }
+                    
+                    if let resume = resume, let onViewTapped = onViewTapped {
+                        Button(action: {
+                            if let url = URL(string: resume.downloadURL) {
+                                onViewTapped(url)
+                            }
+                        }){
+                            Text("check out my resume!")
+                                .font(.custom("MabryPro-Bold", size: 18))
+                        }
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .shadow(color: .black, radius: 0, x: 4, y: 4)
+                                .foregroundColor(Color("BackgroundPrimary"))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(.black, lineWidth: 2)
+                        )
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(36)
+                PageDividerView()
             }
         }
     }
@@ -40,10 +67,18 @@ struct AboutView: View {
     List {
         AboutView(
             about: PortfolioView.PresentableAbout(
-                header: "About Me",
+                header: "Highlights",
                 subtitle: "Software Developer",
                 body: "I'm a passionate software developer with experience in iOS development and web technologies. I love creating beautiful and functional applications."
-            )
+            ),
+            resume: PortfolioView.PresentableResume(
+                fileName: "John_Doe_Resume.pdf",
+                downloadURL: "https://example.com/resume.pdf",
+                uploadedAt: "Dec 15, 2024"
+            ),
+            onViewTapped: { url in
+                print("Would open: \(url)")
+            }
         )
     }
     .listStyle(.insetGrouped)
