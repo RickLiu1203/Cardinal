@@ -11,55 +11,67 @@ struct PersonalDetailsView: View {
     let personalDetails: PortfolioView.PresentablePersonalDetails
 
     var body: some View {
-        Section(header: Text("Personal Details")) {
+        Section() {
             VStack(alignment: .leading, spacing: 8) {
                 Text("\(personalDetails.firstName) \(personalDetails.lastName)")
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundColor(Color("TextPrimary"))
                 Text(personalDetails.email)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.custom("MabryPro-Medium", size: 16))
+                    .foregroundColor(Color("TextPrimary"))
                 if !personalDetails.phoneNumber.isEmpty {
                     Text(personalDetails.phoneNumber)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.custom("MabryPro-Regular", size: 16))
+                        .foregroundColor(Color("TextPrimary"))
                 }
-                if !personalDetails.linkedIn.isEmpty {
-                    Link(destination: URL(string: personalDetails.linkedIn) ?? URL(string: "https://linkedin.com")!) {
-                        HStack {
-                            Image(systemName: "link")
-                                .font(.caption)
-                            Text("LinkedIn")
-                                .font(.subheadline)
+                HStack(spacing: 16) {
+                    if !personalDetails.linkedIn.isEmpty {
+                        Link(destination: URL(string: personalDetails.linkedIn) ?? URL(string: "https://linkedin.com")!) {
+                                Text("LinkedIn")
+                                    .font(.custom("MabryPro-Regular", size: 16))
+                                    .underline()
+                            .foregroundColor(Color("TextPrimary"))
                         }
-                        .foregroundColor(.blue)
+                    }
+                    if !personalDetails.github.isEmpty {
+                        Link(destination: URL(string: personalDetails.github) ?? URL(string: "https://github.com")!) {
+                                Text("GitHub")
+                                    .font(.custom("MabryPro-Regular", size: 16))
+                                    .underline()
+                            .foregroundColor(Color("TextPrimary"))
+                        }
+                    }
+                    if !personalDetails.website.isEmpty {
+                        Link(destination: URL(string: personalDetails.website) ?? URL(string: "https://example.com")!) {
+                                Text("Website")
+                                    .font(.custom("MabryPro-Regular", size: 16))
+                                    .underline()
+                            .foregroundColor(Color("TextPrimary"))
+                        }
                     }
                 }
-                if !personalDetails.github.isEmpty {
-                    Link(destination: URL(string: personalDetails.github) ?? URL(string: "https://github.com")!) {
-                        HStack {
-                            Image(systemName: "link")
-                                .font(.caption)
-                            Text("GitHub")
-                                .font(.subheadline)
-                        }
-                        .foregroundColor(.blue)
-                    }
-                }
-                if !personalDetails.website.isEmpty {
-                    Link(destination: URL(string: personalDetails.website) ?? URL(string: "https://example.com")!) {
-                        HStack {
-                            Image(systemName: "link")
-                                .font(.caption)
-                            Text("Website")
-                                .font(.subheadline)
-                        }
-                        .foregroundColor(.blue)
-                    }
-                }
-            }
-            .padding(.vertical, 4)
+                .padding(.top, 4)
+            }   
+            .padding(.vertical, 20)
+            .padding(.horizontal, 40)
         }
     }
+}
+
+#Preview {
+    List {
+        PersonalDetailsView(
+            personalDetails: PortfolioView.PresentablePersonalDetails(
+                firstName: "John",
+                lastName: "Doe",
+                email: "john.doe@example.com",
+                linkedIn: "https://linkedin.com/in/johndoe",
+                phoneNumber: "+1 (555) 123-4567",
+                github: "https://github.com/johndoe",
+                website: "https://johndoe.dev"
+            )
+        )
+    }
+    .listStyle(.insetGrouped)
 }
 

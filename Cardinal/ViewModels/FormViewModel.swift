@@ -20,7 +20,7 @@ class FormViewModel: ObservableObject {
         case projects
         case skills
         case resume
-        case textBlock
+        case about
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -29,7 +29,7 @@ class FormViewModel: ObservableObject {
             case .projects: return "Projects"
             case .skills: return "Skills"
             case .resume: return "Resume"
-            case .textBlock: return "Text Block"
+            case .about: return "About"
             }
         }
     }
@@ -42,9 +42,9 @@ class FormViewModel: ObservableObject {
         let endDateString: String? // nil means "Present"
         let description: String?
     }
-    struct TextBlockData: Identifiable, Equatable, Codable {
-        let id: String
+    struct AboutData: Equatable {
         let header: String
+        let subtitle: String
         let body: String
     }
     struct ResumeData: Identifiable, Equatable, Codable {
@@ -74,7 +74,7 @@ class FormViewModel: ObservableObject {
         let website: String
     }
     @Published var personalDetails: PersonalDetailsData?
-    @Published var textBlocks: [TextBlockData] = []
+    @Published var about: AboutData?
     @Published var experiences: [ExperienceData] = []
     @Published var resume: ResumeData?
     @Published var skills: SkillsData?
@@ -91,8 +91,8 @@ class FormViewModel: ObservableObject {
     }
     var availableSections: [SectionType] {
         SectionType.allCases.filter { type in
-            // Allow multiple Text Blocks, Experiences, and Projects; others are exclusive
-            if type == .textBlock || type == .experience || type == .projects { return true }
+            // Allow multiple Experiences and Projects; others are exclusive
+            if type == .experience || type == .projects { return true }
             return !selectedSections.contains(type)
         }
     }
@@ -142,8 +142,8 @@ class FormViewModel: ObservableObject {
                             switch section {
                             case .personalDetails:
                                 return personalDetails != nil
-                            case .textBlock:
-                                return !textBlocks.isEmpty
+                            case .about:
+                                return about != nil
                             case .experience:
                                 return !experiences.isEmpty
                             case .resume:
@@ -209,48 +209,39 @@ class FormViewModel: ObservableObject {
     func clearUserData() {
         personalDetails = nil
         selectedSections.removeAll()
-        textBlocks.removeAll()
+        about = nil
         experiences.removeAll()
         resume = nil
         skills = nil
         projects.removeAll()
     }
 
-    // MARK: - Text Blocks
-    func addTextBlockLocally(header: String, body: String) {
-        let block = TextBlockData(id: UUID().uuidString, header: header, body: body)
-        textBlocks.append(block)
-        if selectedSections.contains(.textBlock) == false {
-            selectedSections.append(.textBlock)
-        }
-    }
-    func saveTextBlock(_ header: String, body: String, userId: String) async throws {
+    // MARK: - About
+    func saveAbout(_ header: String, subtitle: String, body: String, userId: String) async throws {
         let payload: [String: Any] = [
             "header": header,
+            "subtitle": subtitle,
             "body": body,
-            "createdAt": FieldValue.serverTimestamp()
+            "updatedAt": FieldValue.serverTimestamp()
         ]
-        _ = try await db.collection("users").document(userId)
-            .collection("sections").document("textBlocks")
-            .collection("items").addDocument(data: payload)
+        try await db.collection("users").document(userId).collection("sections").document("about").setData(payload, merge: true)
+        await MainActor.run {
+            self.about = AboutData(header: header, subtitle: subtitle, body: body)
+        }
     }
-    func fetchTextBlocks(userId: String) async {
+    func fetchAbout(userId: String) async {
         do {
-            let snapshot = try await db.collection("users").document(userId)
-                .collection("sections").document("textBlocks")
-                .collection("items")
-                .order(by: "createdAt", descending: false)
-                .getDocuments()
-            let blocks: [TextBlockData] = snapshot.documents.map { doc in
-                let data = doc.data()
+            let snapshot = try await db.collection("users").document(userId).collection("sections").document("about").getDocument()
+            if let data = snapshot.data() {
                 let header = data["header"] as? String ?? ""
+                let subtitle = data["subtitle"] as? String ?? ""
                 let body = data["body"] as? String ?? ""
-                return TextBlockData(id: doc.documentID, header: header, body: body)
-            }
-            await MainActor.run {
-                self.textBlocks = blocks
-                if !blocks.isEmpty && !self.selectedSections.contains(.textBlock) {
-                    self.selectedSections.append(.textBlock)
+                let aboutData = AboutData(header: header, subtitle: subtitle, body: body)
+                await MainActor.run {
+                    self.about = aboutData
+                    if !self.selectedSections.contains(.about) {
+                        self.selectedSections.append(.about)
+                    }
                 }
             }
         } catch {
@@ -339,23 +330,18 @@ class FormViewModel: ObservableObject {
         
         let metadata = StorageMetadata()
         metadata.contentType = "application/pdf"
+        metadata.contentDisposition = "inline"
         
         print("⬆️ Uploading to Firebase Storage...")
         let _ = try await storageRef.putDataAsync(fileData, metadata: metadata)
         let firebaseURL = try await storageRef.downloadURL()
         print("✅ Upload complete. Firebase URL: \(firebaseURL)")
         
-        // Create custom domain URL for the PDF
-        let storagePath = storageRef.fullPath
-        let encodedPath = storagePath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? storagePath
-        let customURL = "https://cardinalapp.me/files/\(encodedPath)"
-        print("📎 Custom domain URL: \(customURL)")
-        
-        // Save metadata to Firestore with custom URL
+        // Save metadata to Firestore with the tokenized Firebase URL
         let payload: [String: Any] = [
             "fileName": fileName,
-            "downloadURL": customURL,
-            "firebaseURL": firebaseURL.absoluteString, // Keep original as backup
+            "downloadURL": firebaseURL.absoluteString,
+            "firebaseURL": firebaseURL.absoluteString,
             "uploadedAt": FieldValue.serverTimestamp()
         ]
         
@@ -369,7 +355,7 @@ class FormViewModel: ObservableObject {
         let resumeData = ResumeData(
             id: "resume",
             fileName: fileName,
-            downloadURL: customURL,
+            downloadURL: firebaseURL.absoluteString,
             uploadedAt: Date()
         )
         
@@ -390,9 +376,33 @@ class FormViewModel: ObservableObject {
             
             if let data = doc.data() {
                 let fileName = data["fileName"] as? String ?? ""
-                let downloadURL = data["downloadURL"] as? String ?? ""
+                // Prefer firebaseURL if present, fall back to downloadURL
+                var downloadURL = (data["firebaseURL"] as? String) ?? (data["downloadURL"] as? String) ?? ""
                 let timestamp = data["uploadedAt"] as? Timestamp
                 let uploadedAt = timestamp?.dateValue() ?? Date()
+                
+                // Repair legacy custom-domain URLs by generating a fresh tokenized URL
+                if downloadURL.contains("cardinalapp.me/files/") {
+                    if let range = downloadURL.range(of: "/files/") {
+                        let rawPath = String(downloadURL[range.upperBound...])
+                        let storagePath = rawPath.removingPercentEncoding ?? rawPath
+                        // Attempt to fetch a new tokenized URL from Firebase Storage
+                        do {
+                            let newURL = try await storage.reference(withPath: storagePath).downloadURL()
+                            downloadURL = newURL.absoluteString
+                            // Persist the fixed URL back to Firestore for future loads
+                            try await db.collection("users").document(userId)
+                                .collection("sections").document("resume")
+                                .setData([
+                                    "downloadURL": downloadURL,
+                                    "firebaseURL": downloadURL,
+                                    "updatedAt": FieldValue.serverTimestamp()
+                                ], merge: true)
+                        } catch {
+                            // If we can't repair, keep the existing URL
+                        }
+                    }
+                }
                 
                 let resumeData = ResumeData(
                     id: "resume",
@@ -610,18 +620,16 @@ class FormViewModel: ObservableObject {
             }
         }
     }
-    func deleteTextBlock(id: String) async {
+    func deleteAbout() async {
         guard let userId = currentUserId else { return }
         do {
             try await db.collection("users").document(userId)
-                .collection("sections").document("textBlocks")
-                .collection("items").document(id).delete()
+                .collection("sections").document("about")
+                .delete()
         } catch { }
         await MainActor.run {
-            self.textBlocks.removeAll { $0.id == id }
-            if self.textBlocks.isEmpty {
-                self.selectedSections.removeAll { $0 == .textBlock }
-            }
+            self.about = nil
+            self.selectedSections.removeAll { $0 == .about }
         }
     }
     func deleteProject(id: String) async {
@@ -640,20 +648,19 @@ class FormViewModel: ObservableObject {
     }
 
     // MARK: - Update: Items
-    func updateTextBlock(id: String, header: String, body: String) async {
+    func updateAbout(header: String, subtitle: String, body: String) async {
         guard let userId = currentUserId else { return }
         let payload: [String: Any] = [
             "header": header,
+            "subtitle": subtitle,
             "body": body
         ]
         do {
             try await db.collection("users").document(userId)
-                .collection("sections").document("textBlocks")
-                .collection("items").document(id).setData(payload, merge: true)
+                .collection("sections").document("about")
+                .setData(payload, merge: true)
             await MainActor.run {
-                if let idx = self.textBlocks.firstIndex(where: { $0.id == id }) {
-                    self.textBlocks[idx] = TextBlockData(id: id, header: header, body: body)
-                }
+                self.about = AboutData(header: header, subtitle: subtitle, body: body)
             }
         } catch { }
     }

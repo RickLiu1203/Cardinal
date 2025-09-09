@@ -24,7 +24,7 @@ struct ResumeButtonView: View {
                             .fontWeight(.semibold)
                         Text("Uploaded: \(resume.uploadedAt)")
                             .font(.footnote)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color("TextPrimary"))
                     }
                     Spacer()
                     Button("View") {
@@ -40,5 +40,21 @@ struct ResumeButtonView: View {
             .padding(.vertical, 4)
         }
     }
+}
+
+#Preview {
+    List {
+        ResumeButtonView(
+            resume: PortfolioView.PresentableResume(
+                fileName: "John_Doe_Resume.pdf",
+                downloadURL: "https://example.com/resume.pdf",
+                uploadedAt: "Dec 15, 2024"
+            ),
+            onViewTapped: { url in
+                print("Would open: \(url)")
+            }
+        )
+    }
+    .listStyle(.insetGrouped)
 }
 

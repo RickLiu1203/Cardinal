@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreText
 
 struct ProjectsView: View {
     let projects: [PortfolioView.PresentableProject]
@@ -58,5 +59,36 @@ struct ProjectsView: View {
             }
         }
     }
+}
+
+#Preview {
+    List {
+        ProjectsView(
+            projects: [
+                PortfolioView.PresentableProject(
+                    id: "1",
+                    title: "Weather App",
+                    description: "A beautiful weather app built with SwiftUI featuring real-time weather data, 7-day forecasts, and location-based weather alerts.",
+                    tools: ["SwiftUI", "CoreLocation", "WeatherKit", "Charts"],
+                    link: "https://github.com/johndoe/weather-app"
+                ),
+                PortfolioView.PresentableProject(
+                    id: "2",
+                    title: "Task Manager Pro",
+                    description: "A productivity app for managing daily tasks with cloud sync, collaboration features, and smart notifications.",
+                    tools: ["UIKit", "Core Data", "CloudKit", "UserNotifications"],
+                    link: "https://apps.apple.com/app/taskmanager-pro"
+                ),
+                PortfolioView.PresentableProject(
+                    id: "3",
+                    title: "Portfolio Website",
+                    description: "Personal portfolio website showcasing projects and skills.",
+                    tools: ["React", "TypeScript", "Next.js"],
+                    link: "https://johndoe.dev"
+                )
+            ]
+        )
+    }
+    .listStyle(.insetGrouped)
 }
 

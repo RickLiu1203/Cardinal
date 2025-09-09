@@ -17,9 +17,9 @@ struct PersonalDetails: Codable, Equatable {
     let website: String
 }
 
-struct TextBlock: Codable, Equatable, Identifiable {
-    let id: String
+struct AboutBlock: Codable, Equatable {
     let header: String
+    let subtitle: String
     let body: String
 }
 
@@ -55,7 +55,7 @@ struct PortfolioResponse: Codable, Equatable {
     let phoneNumber: String
     let github: String
     let website: String
-    let textBlocks: [TextBlock]?
+    let about: AboutBlock?
     let experiences: [ExperienceItem]?
     let resume: ResumeItem?
     let skills: [String]?

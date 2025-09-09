@@ -17,5 +17,18 @@
 	</array>
 	<key>NFCReaderUsageDescription</key>
 	<string>Cardinal uses NFC to write your portfolio link to NFC tags for easy sharing.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>MabryPro-Regular.ttf</string>
+		<string>MabryPro-Bold.ttf</string>
+		<string>MabryPro-Medium.ttf</string>
+		<string>MabryPro-Light.ttf</string>
+		<string>MabryPro-Black.ttf</string>
+		<string>MabryPro-Italic.ttf</string>
+		<string>MabryPro-BoldItalic.ttf</string>
+		<string>MabryPro-MediumItalic.ttf</string>
+		<string>MabryPro-LightItalic.ttf</string>
+		<string>MabryPro-BlackItalic.ttf</string>
+	</array>
 </dict>
 </plist>

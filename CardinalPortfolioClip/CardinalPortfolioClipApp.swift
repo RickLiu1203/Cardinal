@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreText
 
 @main
 struct CardinalPortfolioClipApp: App {
@@ -15,7 +16,7 @@ struct CardinalPortfolioClipApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                let injectedBlocks = vm.textBlocks.map { PortfolioView.PresentableTextBlock(id: $0.id, header: $0.header, body: $0.body) }
+                let injectedAbout = vm.about.map { PortfolioView.PresentableAbout(header: $0.header, subtitle: $0.subtitle, body: $0.body) }
                 let injectedExps = vm.experiences.map { item in
                     PortfolioView.PresentableExperience(id: item.id, company: item.company, role: item.role, startDateString: item.startDate, endDateString: item.endDate, description: item.description)
                 }
@@ -35,7 +36,7 @@ struct CardinalPortfolioClipApp: App {
                             github: pd.github,
                             website: pd.website
                         ),
-                        overrideTextBlocks: injectedBlocks,
+                        overrideAbout: injectedAbout,
                         overrideExperiences: injectedExps,
                         overrideResume: injectedResume,
                         overrideSkills: injectedSkills,
@@ -45,7 +46,7 @@ struct CardinalPortfolioClipApp: App {
                 } else {
                     PortfolioView(
                         overridePersonalDetails: nil,
-                        overrideTextBlocks: injectedBlocks,
+                        overrideAbout: injectedAbout,
                         overrideExperiences: injectedExps,
                         overrideResume: injectedResume,
                         overrideSkills: injectedSkills,

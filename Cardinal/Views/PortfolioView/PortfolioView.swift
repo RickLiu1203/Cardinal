@@ -18,7 +18,7 @@ struct PortfolioView: View {
         case projects
         case skills
         case resume
-        case textBlock
+        case about
         var id: String { rawValue }
     }
     
@@ -31,9 +31,9 @@ struct PortfolioView: View {
         let github: String
         let website: String
     }
-    struct PresentableTextBlock: Equatable, Identifiable {
-        let id: String
+    struct PresentableAbout: Equatable {
         let header: String
+        let subtitle: String
         let body: String
     }
     struct PresentableExperience: Equatable, Identifiable {
@@ -62,7 +62,7 @@ struct PortfolioView: View {
     
     // Optional overrides for App Clip or callers that want to inject data directly
     private let overridePersonalDetails: PresentablePersonalDetails?
-    private let overrideTextBlocks: [PresentableTextBlock]?
+    private let overrideAbout: PresentableAbout?
     private let overrideExperiences: [PresentableExperience]?
     private let overrideResume: PresentableResume?
     private let overrideSkills: PresentableSkills?
@@ -77,14 +77,14 @@ struct PortfolioView: View {
     @State private var safariURL: URL?
     
     init(overridePersonalDetails: PresentablePersonalDetails? = nil,
-         overrideTextBlocks: [PresentableTextBlock]? = nil,
+         overrideAbout: PresentableAbout? = nil,
          overrideExperiences: [PresentableExperience]? = nil,
          overrideResume: PresentableResume? = nil,
          overrideSkills: PresentableSkills? = nil,
          overrideProjects: [PresentableProject]? = nil,
          overrideSectionOrder: [SectionType]? = nil) {
         self.overridePersonalDetails = overridePersonalDetails
-        self.overrideTextBlocks = overrideTextBlocks
+        self.overrideAbout = overrideAbout
         self.overrideExperiences = overrideExperiences
         self.overrideResume = overrideResume
         self.overrideSkills = overrideSkills
@@ -101,13 +101,14 @@ struct PortfolioView: View {
         #endif
         return nil
     }
-    private var effectiveTextBlocks: [PresentableTextBlock] {
-        if let injected = overrideTextBlocks { return injected }
+    private var effectiveAbout: PresentableAbout? {
+        if let injected = overrideAbout { return injected }
         #if !APPCLIP
-        return formViewModel.textBlocks.map { .init(id: $0.id, header: $0.header, body: $0.body) }
-        #else
-        return []
+        if let about = formViewModel.about {
+            return .init(header: about.header, subtitle: about.subtitle, body: about.body)
+        }
         #endif
+        return nil
     }
     private var effectiveExperiences: [PresentableExperience] {
         if let injected = overrideExperiences { return injected }
@@ -162,7 +163,7 @@ struct PortfolioView: View {
         if let injectedOrder = overrideSectionOrder {
             return injectedOrder.filter { sectionHasData($0) }
         } else {
-            let defaultOrder: [SectionType] = [.personalDetails, .textBlock, .experience, .resume, .skills, .projects]
+            let defaultOrder: [SectionType] = [.personalDetails, .about, .experience, .resume, .skills, .projects]
             return defaultOrder.filter { sectionHasData($0) }
         }
         #endif
@@ -172,8 +173,8 @@ struct PortfolioView: View {
         switch sectionType {
         case .personalDetails:
             return effectivePersonalDetails != nil
-        case .textBlock:
-            return !effectiveTextBlocks.isEmpty
+        case .about:
+            return effectiveAbout != nil
         case .experience:
             return !effectiveExperiences.isEmpty
         case .resume:
@@ -191,80 +192,76 @@ struct PortfolioView: View {
         case .personalDetails:
             if let pd = effectivePersonalDetails {
                 PersonalDetailsView(personalDetails: pd)
+                    .foregroundColor(Color("TextPrimary"))
             }
             
-        case .textBlock:
-            let blocks = effectiveTextBlocks
-            if !blocks.isEmpty {
-                TextView(blocks: blocks)
+        case .about:
+            if let about = effectiveAbout {
+                AboutView(about: about)
+                    .foregroundColor(Color("TextPrimary"))
             }
             
         case .experience:
             let exps = effectiveExperiences
             if !exps.isEmpty {
                 ExperiencesView(experiences: exps)
+                    .foregroundColor(Color("TextPrimary"))
             }
             
         case .resume:
             if let resume = effectiveResume {
                 ResumeButtonView(resume: resume) { url in
-                    #if APPCLIP
-                    presentPDFInSafariView(url: url)
-                    #else
                     UIApplication.shared.open(url)
-                    #endif
                 }
+                    .foregroundColor(Color("TextPrimary"))
             }
             
         case .skills:
             if let skillsData = effectiveSkills {
                 SkillsView(skills: skillsData)
+                    .foregroundColor(Color("TextPrimary"))
             }
             
         case .projects:
             let projects = effectiveProjects
             if !projects.isEmpty {
                 ProjectsView(projects: projects)
+                    .foregroundColor(Color("TextPrimary"))
             }
         }
     }
     
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(effectiveSectionOrder, id: \.id) { sectionType in
-                    sectionView(for: sectionType)
-                }
-                
-                if effectiveSectionOrder.isEmpty {
-                    Section {
-                        #if APPCLIP
-                        Text("No details yet.")
-                            .foregroundColor(.secondary)
-                        Text("Open from your link to see details.")
-                            .foregroundColor(.secondary)
-                        #else
-                        Text("No details yet. Add your info in the Details tab.")
-                            .foregroundColor(.secondary)
-                        #endif
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    ForEach(effectiveSectionOrder, id: \.id) { sectionType in
+                        sectionView(for: sectionType)
+                    }
+                    
+                    if effectiveSectionOrder.isEmpty {
+                        Section {
+                            #if !APPCLIP
+                            Text("No details yet. Add your info in the Details tab.")
+                                .foregroundColor(Color("TextPrimary"))
+                            #endif
+                        }
                     }
                 }
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Portfolio")
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color("BackgroundPrimary"))
             #if !APPCLIP
             .onAppear {
                 if let uid = Auth.auth().currentUser?.uid {
                     Task {
-                        // Fetch all data first
                         await formViewModel.fetchPersonalDetails(userId: uid)
-                        await formViewModel.fetchTextBlocks(userId: uid)
+                        await formViewModel.fetchAbout(userId: uid)
                         await formViewModel.fetchExperiences(userId: uid)
                         await formViewModel.fetchResume(userId: uid)
                         await formViewModel.fetchSkills(userId: uid)
                         await formViewModel.fetchProjects(userId: uid)
                         
-                        // Then apply the saved section order after all data is loaded
                         await formViewModel.fetchSectionOrder(userId: uid)
                     }
                 }
@@ -303,5 +300,67 @@ struct SafariView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {
         // No updates needed
     }
+}
+
+#Preview {
+    PortfolioView(
+        overridePersonalDetails: PortfolioView.PresentablePersonalDetails(
+            firstName: "John",
+            lastName: "Doe",
+            email: "john.doe@example.com",
+            linkedIn: "https://linkedin.com/in/johndoe",
+            phoneNumber: "+1 (555) 123-4567",
+            github: "https://github.com/johndoe",
+            website: "https://johndoe.dev"
+        ),
+        overrideAbout: PortfolioView.PresentableAbout(
+            header: "About Me",
+            subtitle: "Software Developer",
+            body: "I'm a passionate software developer with experience in iOS development and web technologies."
+        ),
+        overrideExperiences: [
+            PortfolioView.PresentableExperience(
+                id: "1",
+                company: "Tech Corp",
+                role: "iOS Developer",
+                startDateString: "Jan 2023",
+                endDateString: nil,
+                description: "Developing cutting-edge mobile applications using SwiftUI and UIKit."
+            ),
+            PortfolioView.PresentableExperience(
+                id: "2",
+                company: "StartupXYZ",
+                role: "Junior Developer",
+                startDateString: "Jun 2022",
+                endDateString: "Dec 2022",
+                description: "Built web applications using React and Node.js."
+            )
+        ],
+        overrideResume: PortfolioView.PresentableResume(
+            fileName: "John_Doe_Resume.pdf",
+            downloadURL: "https://example.com/resume.pdf",
+            uploadedAt: "Dec 15, 2024"
+        ),
+        overrideSkills: PortfolioView.PresentableSkills(
+            skills: ["Swift", "SwiftUI", "UIKit", "React", "Node.js", "Firebase", "Git"]
+        ),
+        overrideProjects: [
+            PortfolioView.PresentableProject(
+                id: "1",
+                title: "Weather App",
+                description: "A beautiful weather app built with SwiftUI featuring real-time weather data and forecasts.",
+                tools: ["SwiftUI", "CoreLocation", "WeatherKit"],
+                link: "https://github.com/johndoe/weather-app"
+            ),
+            PortfolioView.PresentableProject(
+                id: "2",
+                title: "Task Manager",
+                description: "A productivity app for managing daily tasks with cloud sync.",
+                tools: ["UIKit", "Core Data", "CloudKit"],
+                link: "https://apps.apple.com/app/taskmanager"
+            )
+        ],
+        overrideSectionOrder: [.personalDetails, .about, .experience, .resume, .skills, .projects]
+    )
 }
 

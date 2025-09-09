@@ -9,5 +9,18 @@
 		<key>NSAppClipRequestLocationConfirmation</key>
 		<false/>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>MabryPro-Regular.ttf</string>
+		<string>MabryPro-Bold.ttf</string>
+		<string>MabryPro-Medium.ttf</string>
+		<string>MabryPro-Light.ttf</string>
+		<string>MabryPro-Black.ttf</string>
+		<string>MabryPro-Italic.ttf</string>
+		<string>MabryPro-BoldItalic.ttf</string>
+		<string>MabryPro-MediumItalic.ttf</string>
+		<string>MabryPro-LightItalic.ttf</string>
+		<string>MabryPro-BlackItalic.ttf</string>
+	</array>
 </dict>
 </plist>

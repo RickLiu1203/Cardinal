@@ -9,7 +9,7 @@ import Foundation
 
 final class PortfolioViewModel: ObservableObject {
     @Published var personalDetails: PersonalDetails?
-    @Published var textBlocks: [TextBlock] = []
+    @Published var about: AboutBlock?
     @Published var experiences: [ExperienceItem] = []
     @Published var resume: ResumeItem?
     @Published var skills: [String] = []
@@ -57,7 +57,7 @@ final class PortfolioViewModel: ObservableObject {
                                                        phoneNumber: decoded.phoneNumber,
                                                        github: decoded.github,
                                                        website: decoded.website)
-                self.textBlocks = decoded.textBlocks ?? []
+                self.about = decoded.about
                 // Sort experiences by endDate desc; nils last; fallback to startDate desc
                 let items = decoded.experiences ?? []
                 self.experiences = items.sorted { a, b in

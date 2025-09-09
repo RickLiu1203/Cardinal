@@ -30,3 +30,14 @@ struct SkillsView: View {
     }
 }
 
+#Preview {
+    List {
+        SkillsView(
+            skills: PortfolioView.PresentableSkills(
+                skills: ["Swift", "SwiftUI", "UIKit", "React", "Node.js", "Firebase", "Git", "Xcode", "JavaScript", "Python", "Core Data", "CloudKit"]
+            )
+        )
+    }
+    .listStyle(.insetGrouped)
+}
+

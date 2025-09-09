@@ -28,21 +28,20 @@ exports.getPortfolio = onRequest(async (req, res) => {
 
       const data = snapshot.data();
 
-      // Also load text blocks and experiences
-      const itemsSnap = await admin.firestore()
+      // Also load about section and experiences
+      const aboutSnap = await admin.firestore()
           .collection("users").doc(id)
-          .collection("sections").doc("textBlocks")
-          .collection("items")
-          .orderBy("createdAt", "asc")
+          .collection("sections").doc("about")
           .get();
-      const textBlocks = itemsSnap.docs.map((d) => {
-        const td = d.data() || {};
-        return {
-          id: d.id,
-          header: td.header || "",
-          body: td.body || "",
+      let about = null;
+      if (aboutSnap.exists) {
+        const aboutData = aboutSnap.data() || {};
+        about = {
+          header: aboutData.header || "",
+          subtitle: aboutData.subtitle || "",
+          body: aboutData.body || "",
         };
-      });
+      }
 
       const expSnap = await admin.firestore()
           .collection("users").doc(id)
@@ -142,7 +141,7 @@ exports.getPortfolio = onRequest(async (req, res) => {
         phoneNumber: data.phoneNumber || "",
         github: data.github || "",
         website: data.website || "",
-        textBlocks,
+        about,
         experiences,
         resume,
         skills,
@@ -152,6 +151,57 @@ exports.getPortfolio = onRequest(async (req, res) => {
     } catch (error) {
       console.error("Error fetching portfolio:", error);
       return res.status(500).json({error: "internal server error"});
+    }
+  });
+});
+
+// Streams files from Firebase Storage so that cardinalapp.me/files/<path> works
+exports.serveFile = onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      const prefix = "/files/";
+      const originalPath = req.path || req.url || "";
+      const idx = originalPath.indexOf(prefix);
+      if (idx === -1) {
+        return res.status(400).send("Bad request");
+      }
+      let storagePath = originalPath.substring(idx + prefix.length);
+      if (!storagePath) {
+        return res.status(400).send("Missing file path");
+      }
+      storagePath = decodeURIComponent(storagePath);
+
+      const bucket = admin.storage().bucket();
+      const file = bucket.file(storagePath);
+      const [exists] = await file.exists();
+      if (!exists) {
+        return res.status(404).send("Not found");
+      }
+
+      // Infer content type from extension; default to application/pdf
+      const isPdf = storagePath.toLowerCase().endsWith(".pdf");
+      res.set(
+          "Content-Type",
+          isPdf ? "application/pdf" : "application/octet-stream",
+      );
+      const fileName = storagePath.split("/").pop();
+      res.set(
+          "Content-Disposition",
+          `inline; filename="${fileName}"`,
+      );
+      res.set("Cache-Control", "public, max-age=3600, s-maxage=3600");
+
+      const stream = file.createReadStream();
+      stream.on("error", (err) => {
+        console.error("Error streaming file:", err);
+        if (!res.headersSent) {
+          res.status(500).send("Error reading file");
+        }
+      });
+      stream.pipe(res);
+    } catch (error) {
+      console.error("serveFile error:", error);
+      return res.status(500).send("Internal server error");
     }
   });
 });

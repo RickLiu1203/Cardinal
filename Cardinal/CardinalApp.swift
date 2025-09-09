@@ -8,6 +8,7 @@
 import SwiftUI
 import FirebaseCore
 import GoogleSignIn
+import CoreText
 
 @main
 struct CardinalApp: App {
@@ -16,6 +17,16 @@ struct CardinalApp: App {
     
     init() {
         FirebaseApp.configure()
+        UIFont.registerCustomFonts()
+        
+        // Debug: List available fonts
+        print("🔍 Available font families:")
+        for family in UIFont.familyNames.sorted() {
+            print("Family: \(family)")
+            for name in UIFont.fontNames(forFamilyName: family) {
+                print("  - \(name)")
+            }
+        }
     }
     
     var body: some Scene {

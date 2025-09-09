@@ -22,7 +22,7 @@ struct ExperiencesView: View {
                             .font(.footnote)
                         Text(formatPeriod(startDateString: exp.startDateString, endDateString: exp.endDateString))
                             .font(.footnote)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color("TextPrimary"))
                         if let desc = exp.description, !desc.isEmpty {
                             Text(desc)
                                 .font(.footnote)
@@ -39,5 +39,31 @@ struct ExperiencesView: View {
         let end = endDateString ?? "Present"
         return "\(start) – \(end)"
     }
+}
+
+#Preview {
+    List {
+        ExperiencesView(
+            experiences: [
+                PortfolioView.PresentableExperience(
+                    id: "1",
+                    company: "Tech Corp",
+                    role: "Senior iOS Developer",
+                    startDateString: "Jan 2023",
+                    endDateString: nil,
+                    description: "Leading iOS development team and architecting scalable mobile applications using SwiftUI and UIKit."
+                ),
+                PortfolioView.PresentableExperience(
+                    id: "2",
+                    company: "StartupXYZ",
+                    role: "Junior Developer",
+                    startDateString: "Jun 2022",
+                    endDateString: "Dec 2022",
+                    description: "Built web applications using React and Node.js, collaborated with design team on user experience improvements."
+                )
+            ]
+        )
+    }
+    .listStyle(.insetGrouped)
 }
 

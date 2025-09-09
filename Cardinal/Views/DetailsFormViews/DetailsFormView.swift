@@ -16,7 +16,7 @@ struct DetailsFormView: View {
         enum Kind: Equatable {
             case section(FormViewModel.SectionType)
             case editExperience(FormViewModel.ExperienceData)
-            case editTextBlock(FormViewModel.TextBlockData)
+            case editAbout(FormViewModel.AboutData)
             case editProject(FormViewModel.ProjectData)
         }
         let kind: Kind
@@ -24,7 +24,7 @@ struct DetailsFormView: View {
             switch kind {
             case .section(let type): return "section-\(type.rawValue)"
             case .editExperience(let exp): return "exp-\(exp.id)"
-            case .editTextBlock(let block): return "tb-\(block.id)"
+            case .editAbout(let about): return "about"
             case .editProject(let project): return "prj-\(project.id)"
             }
         }
@@ -107,30 +107,41 @@ struct DetailsFormView: View {
                                     }
                                 }
                             }
-                        case .textBlock:
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Text Blocks (\(formViewModel.textBlocks.count))")
-                                    .font(.headline)
-                                if formViewModel.textBlocks.isEmpty == false {
-                                    ForEach(formViewModel.textBlocks) { block in
+                        case .about:
+                            Group {
+                                if let about = formViewModel.about {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("About")
+                                            .font(.headline)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            if block.header.isEmpty == false {
-                                                Text(block.header).font(.subheadline).fontWeight(.semibold)
+                                            if !about.header.isEmpty {
+                                                Text(about.header).font(.subheadline).fontWeight(.semibold)
                                             }
-                                            if block.body.isEmpty == false {
-                                                Text(block.body).font(.footnote).lineLimit(2)
+                                            if !about.subtitle.isEmpty {
+                                                Text(about.subtitle).font(.footnote).fontWeight(.medium).foregroundColor(.secondary)
+                                            }
+                                            if !about.body.isEmpty {
+                                                Text(about.body).font(.footnote).lineLimit(2)
                                             }
                                         }
                                         .padding(.vertical, 2)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture { editorRoute = EditorRoute(kind: .editTextBlock(block)) }
-                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                            Button(role: .destructive) {
-                                                Task { await formViewModel.deleteTextBlock(id: block.id) }
-                                            } label: { Label("Delete", systemImage: "trash") }
-                                        }
                                     }
+                                } else {
+                                    Text("About")
                                 }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture { 
+                                if let about = formViewModel.about {
+                                    editorRoute = EditorRoute(kind: .editAbout(about))
+                                } else {
+                                    editorRoute = EditorRoute(kind: .section(.about))
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await formViewModel.deleteAbout() }
+                                } label: { Label("Delete", systemImage: "trash") }
                             }
                         case .resume:
                             VStack(alignment: .leading, spacing: 4) {
@@ -266,7 +277,7 @@ struct DetailsFormView: View {
                 Task {
                     // Fetch all data first
                     await formViewModel.fetchPersonalDetails(userId: uid)
-                    await formViewModel.fetchTextBlocks(userId: uid)
+                    await formViewModel.fetchAbout(userId: uid)
                     await formViewModel.fetchExperiences(userId: uid)
                     await formViewModel.fetchResume(userId: uid)
                     await formViewModel.fetchSkills(userId: uid)
@@ -299,15 +310,15 @@ struct DetailsFormView: View {
             case .resume:
                 ResumeSheetView(onAdded: nil)
                     .environmentObject(formViewModel)
-            case .textBlock:
-                TextBlockSheetView(onAdded: nil)
+            case .about:
+                AboutSheetView(onAdded: nil)
                     .environmentObject(formViewModel)
             }
         case .editExperience(let exp):
             ExperienceSheetView(onAdded: nil, initialData: exp, isEditing: true)
                 .environmentObject(formViewModel)
-        case .editTextBlock(let block):
-            TextBlockSheetView(onAdded: nil, initialData: block, isEditing: true)
+        case .editAbout(let about):
+            AboutSheetView(onAdded: nil, initialData: about, isEditing: true)
                 .environmentObject(formViewModel)
         case .editProject(let project):
             ProjectSheetView(onAdded: nil, initialData: project, isEditing: true)
