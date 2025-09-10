@@ -32,6 +32,7 @@ struct ExperienceItem: Codable, Equatable, Identifiable {
     let startDate: String?
     let endDate: String?
     let description: String?
+    let skills: [String]?
 }
 
 struct ResumeItem: Codable, Equatable {

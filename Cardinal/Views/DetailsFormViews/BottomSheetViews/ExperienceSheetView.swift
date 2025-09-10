@@ -21,6 +21,7 @@ struct ExperienceSheetView: View {
     @State private var hasEndDate: Bool = false
     @State private var endDate: Date = Date()
     @State private var descriptionText: String = ""
+    @State private var skillsInput: String = ""
     @State private var didPrefill: Bool = false
     var body: some View {
         VStack(spacing: 16) {
@@ -44,18 +45,33 @@ struct ExperienceSheetView: View {
                 }
             }
             FormFieldView(title: "Description", text: $descriptionText, inputType: .text, isMandatory: false, multiline: true)
+            
+            FormFieldView(
+                title: "Skills",
+                text: $skillsInput,
+                inputType: .text,
+                isMandatory: false,
+                multiline: true
+            )
+            
+            Text("Enter skills used in this role, separated by commas")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
             Button(isEditing ? "Save Changes" : "Add Experience") {
+                let skills = skillsInput.isEmpty ? nil : skillsInput.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
                 if isEditing, let id = initialData?.id {
                     Task {
-                        await formViewModel.updateExperience(id: id, company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText)
+                        await formViewModel.updateExperience(id: id, company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText, skills: skills)
                         dismiss()
                     }
                 } else {
-                    formViewModel.addExperienceLocally(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText)
+                    formViewModel.addExperienceLocally(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText, skills: skills)
                     onAdded?()
                     dismiss()
                     if let uid = Auth.auth().currentUser?.uid {
-                        Task { try? await formViewModel.saveExperience(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText, userId: uid) }
+                        Task { try? await formViewModel.saveExperience(company: company, role: role, startDate: startDate, endDate: hasEndDate ? endDate : nil, description: descriptionText.isEmpty ? nil : descriptionText, skills: skills, userId: uid) }
                     }
                 }
             }
@@ -83,6 +99,7 @@ struct ExperienceSheetView: View {
                     hasEndDate = false
                 }
                 descriptionText = initial.description ?? ""
+                skillsInput = initial.skills?.joined(separator: ", ") ?? ""
                 didPrefill = true
             }
         }

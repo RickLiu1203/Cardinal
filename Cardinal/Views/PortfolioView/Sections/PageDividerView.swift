@@ -10,7 +10,7 @@ import SwiftUI
 public struct PageDividerView: View {
     public var body: some View {
         Rectangle()
-            .frame(height: 1)
+            .frame(height: 2)
             .foregroundColor(Color("TextPrimary"))
     }
 }

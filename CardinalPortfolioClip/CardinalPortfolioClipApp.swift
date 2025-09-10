@@ -11,6 +11,7 @@ import CoreText
 @main
 struct CardinalPortfolioClipApp: App {
     @StateObject private var vm = PortfolioViewModel()
+    @State private var showLandingModal: Bool = false
     init() {}
 
     var body: some Scene {
@@ -18,7 +19,8 @@ struct CardinalPortfolioClipApp: App {
             Group {
                 let injectedAbout = vm.about.map { PortfolioView.PresentableAbout(header: $0.header, subtitle: $0.subtitle, body: $0.body) }
                 let injectedExps = vm.experiences.map { item in
-                    PortfolioView.PresentableExperience(id: item.id, company: item.company, role: item.role, startDateString: item.startDate, endDateString: item.endDate, description: item.description)
+                    print("🔄 App Clip mapping experience: \(item.role) at \(item.company), skills: \(item.skills ?? [])")
+                    return PortfolioView.PresentableExperience(id: item.id, company: item.company, role: item.role, startDateString: item.startDate, endDateString: item.endDate, description: item.description, skills: item.skills)
                 }
                 let injectedResume = vm.resume.map { PortfolioView.PresentableResume(fileName: $0.fileName, downloadURL: $0.downloadURL, uploadedAt: $0.uploadedAt) }
                 let injectedSkills = vm.skills.isEmpty ? nil : PortfolioView.PresentableSkills(skills: vm.skills)
@@ -57,16 +59,31 @@ struct CardinalPortfolioClipApp: App {
                 }
             }
             .onAppear {
+                if UserDefaults.standard.bool(forKey: "clipNamePromptShown") == false {
+                    showLandingModal = true
+                    UserDefaults.standard.set(true, forKey: "clipNamePromptShown")
+                }
                 let injectedSectionOrder = vm.sectionOrder.isEmpty ? nil : vm.sectionOrder.compactMap { PortfolioView.SectionType(rawValue: $0) }
-                print("📱 App Clip using section order: \(injectedSectionOrder?.map { $0.rawValue } ?? ["default"])")
+                print("📱 App Clip using section order: \(injectedSectionOrder?.map { $0.rawValue } ?? ["default"]) ")
             }
             .onOpenURL { url in
                 vm.apply(url: url)
+                if let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "id" })?.value, ownerId.isEmpty == false {
+                    AnalyticsManager.shared.ownerId = ownerId
+                    AnalyticsManager.shared.logEvent(action: "page_view")
+                }
             }
             .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
                 if let url = (activity.webpageURL ?? activity.referrerURL) {
                     vm.apply(url: url)
+                    if let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "id" })?.value, ownerId.isEmpty == false {
+                        AnalyticsManager.shared.ownerId = ownerId
+                        AnalyticsManager.shared.logEvent(action: "page_view")
+                    }
                 }
+            }
+            .sheet(isPresented: $showLandingModal) {
+                LandingModalView(isPresented: $showLandingModal)
             }
         }
     }

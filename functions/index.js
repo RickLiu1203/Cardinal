@@ -50,6 +50,7 @@ exports.getPortfolio = onRequest(async (req, res) => {
           .get();
       const experiences = expSnap.docs.map((d) => {
         const ed = d.data() || {};
+        console.log(`Experience data for ${ed.role || "Unknown"}:`, ed.skills);
         return {
           id: d.id,
           company: ed.company || "",
@@ -57,6 +58,7 @@ exports.getPortfolio = onRequest(async (req, res) => {
           startDate: ed.startDateString || null,
           endDate: ed.endDateString || null,
           description: ed.description || "",
+          skills: ed.skills || null,
         };
       });
       experiences.sort((a, b) => {
@@ -203,6 +205,118 @@ exports.serveFile = onRequest(async (req, res) => {
     } catch (error) {
       console.error("serveFile error:", error);
       return res.status(500).send("Internal server error");
+    }
+  });
+});
+
+// Logs an analytics event from the App Clip
+exports.logClipEvent = onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      if (req.method !== "POST") {
+        return res.status(405).json({error: "method not allowed"});
+      }
+      const {ownerId, deviceId, visitorName, action, meta} = req.body || {};
+      if (!ownerId || !deviceId || !action) {
+        return res.status(400).json({error: "missing required fields"});
+      }
+
+      const db = admin.firestore();
+      const statsRef = db.collection("users").doc(ownerId)
+          .collection("analytics").doc("stats");
+      const visitorRef = db.collection("users").doc(ownerId)
+          .collection("analytics").doc("visitors")
+          .collection("devices").doc(deviceId);
+      const eventsCol = db.collection("users").doc(ownerId)
+          .collection("analytics").doc("events").collection("items");
+
+      await db.runTransaction(async (tx) => {
+        const [statsSnap, visitorSnap] = await Promise.all([
+          tx.get(statsRef),
+          tx.get(visitorRef),
+        ]);
+
+        const statsData = statsSnap.exists ?
+          statsSnap.data() :
+          {uniqueVisitors: 0, totalActions: 0};
+        let {uniqueVisitors, totalActions} = statsData;
+
+        // Create event doc
+        const eventDoc = eventsCol.doc();
+        tx.set(eventDoc, {
+          action,
+          meta: meta || {},
+          visitorName: visitorName || "anonymous",
+          deviceId,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Increment totals
+        totalActions += 1;
+        if (!visitorSnap.exists) {
+          tx.set(visitorRef, {
+            firstSeenAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          uniqueVisitors += 1;
+        }
+
+        tx.set(statsRef, {uniqueVisitors, totalActions}, {merge: true});
+      });
+
+      return res.json({ok: true});
+    } catch (error) {
+      console.error("logClipEvent error:", error);
+      return res.status(500).json({error: "internal server error"});
+    }
+  });
+});
+
+// Returns analytics stats and recent events
+exports.getAnalytics = onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      const ownerId = req.query.ownerId;
+      if (!ownerId) {
+        return res.status(400).json({error: "missing ownerId"});
+      }
+
+      const db = admin.firestore();
+      const statsSnap = await db.collection("users").doc(ownerId)
+          .collection("analytics").doc("stats").get();
+      const stats = statsSnap.exists ?
+        statsSnap.data() :
+        {uniqueVisitors: 0, totalActions: 0};
+
+      const eventsSnap = await db.collection("users").doc(ownerId)
+          .collection("analytics").doc("events").collection("items")
+          .orderBy("createdAt", "desc").limit(200).get();
+
+      const events = eventsSnap.docs.map((d) => {
+        const ed = d.data() || {};
+        let timestamp = "";
+        if (ed.createdAt && ed.createdAt.toDate) {
+          timestamp = ed.createdAt.toDate().toISOString();
+        }
+        return {
+          id: d.id,
+          action: ed.action || "",
+          visitorName: ed.visitorName || "anonymous",
+          deviceId: ed.deviceId || "",
+          timestamp,
+          meta: ed.meta || {},
+        };
+      });
+
+      return res.json({
+        stats: {
+          uniqueVisitors: stats.uniqueVisitors || 0,
+          totalActions: stats.totalActions || 0,
+        },
+        events,
+      });
+    } catch (error) {
+      console.error("getAnalytics error:", error);
+      return res.status(500).json({error: "internal server error"});
     }
   });
 });

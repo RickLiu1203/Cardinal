@@ -43,6 +43,7 @@ struct PortfolioView: View {
         let startDateString: String?
         let endDateString: String?
         let description: String?
+        let skills: [String]?
     }
     struct PresentableResume: Equatable {
         let fileName: String
@@ -114,7 +115,7 @@ struct PortfolioView: View {
         if let injected = overrideExperiences { return injected }
         #if !APPCLIP
         return formViewModel.experiences.map { e in
-            return .init(id: e.id, company: e.company, role: e.role, startDateString: e.startDateString, endDateString: e.endDateString, description: e.description)
+            return .init(id: e.id, company: e.company, role: e.role, startDateString: e.startDateString, endDateString: e.endDateString, description: e.description, skills: e.skills)
         }
         #else
         return []
@@ -146,9 +147,8 @@ struct PortfolioView: View {
         return formViewModel.projects.map { p in
             return .init(id: p.id, title: p.title, description: p.description, tools: p.tools, link: p.link)
         }
-        #else
-        return []
         #endif
+        return []
     }
     
     private var effectiveSectionOrder: [SectionType] {
@@ -159,9 +159,17 @@ struct PortfolioView: View {
         }
         return formViewModelOrder.filter { sectionHasData($0) }
         #else
-        // For App Clip, use injected section order if available, otherwise default order
+        // For App Clip, use injected section order if available, otherwise default order.
+        // Additionally, if there is data for a section (e.g. projects) but it is missing
+        // from the injected order, append it to ensure important data is visible.
         if let injectedOrder = overrideSectionOrder {
-            return injectedOrder.filter { sectionHasData($0) }
+            var order = injectedOrder
+            if sectionHasData(.projects), order.contains(.projects) == false { order.append(.projects) }
+            if sectionHasData(.skills), order.contains(.skills) == false { order.append(.skills) }
+            if sectionHasData(.about), order.contains(.about) == false { order.append(.about) }
+            if sectionHasData(.experience), order.contains(.experience) == false { order.append(.experience) }
+            if sectionHasData(.personalDetails), order.contains(.personalDetails) == false { order.append(.personalDetails) }
+            return order.filter { sectionHasData($0) }
         } else {
             let defaultOrder: [SectionType] = [.personalDetails, .about, .experience, .skills, .projects]
             return defaultOrder.filter { sectionHasData($0) }
@@ -196,6 +204,7 @@ struct PortfolioView: View {
         case .about:
             if let about = effectiveAbout {
                 AboutView(about: about, resume: effectiveResume, onViewTapped: { url in
+                    AnalyticsManager.shared.logEvent(action: "view_resume", meta: ["url": url.absoluteString])
                     UIApplication.shared.open(url)
                 })
                     .foregroundColor(Color("TextPrimary"))
@@ -310,7 +319,7 @@ struct SafariView: UIViewControllerRepresentable {
         overrideAbout: PortfolioView.PresentableAbout(
             header: "HIGHLIGHTS",
             subtitle: "what i'm most proud of",
-            body: "I'm a passionate software developer with experience in iOS development and web technologies."
+            body: "I'm a **passionate software developer** with experience in iOS development and web technologies. I love building **innovative solutions** that make a difference."
         ),
         overrideExperiences: [
             PortfolioView.PresentableExperience(
@@ -319,7 +328,8 @@ struct SafariView: UIViewControllerRepresentable {
                 role: "iOS Developer",
                 startDateString: "Jan 2023",
                 endDateString: nil,
-                description: "Developing cutting-edge mobile applications using SwiftUI and UIKit."
+                description: "Developing cutting-edge mobile applications using SwiftUI and UIKit.",
+                skills: ["Swift", "SwiftUI", "UIKit", "iOS"]
             ),
             PortfolioView.PresentableExperience(
                 id: "2",
@@ -327,7 +337,8 @@ struct SafariView: UIViewControllerRepresentable {
                 role: "Junior Developer",
                 startDateString: "Jun 2022",
                 endDateString: "Dec 2022",
-                description: "Built web applications using React and Node.js."
+                description: "Built web applications using React and Node.js.",
+                skills: ["React", "Node.js", "JavaScript"]
             )
         ],
         overrideResume: PortfolioView.PresentableResume(

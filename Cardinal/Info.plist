@@ -2,21 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>Google</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.240965156537-374pplam75r1cp971kvt6eo3fl49gn0r</string>
-			</array>
-		</dict>
-	</array>
 	<key>NFCReaderUsageDescription</key>
 	<string>Cardinal uses NFC to write your portfolio link to NFC tags for easy sharing.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Cardinal needs access to contacts to allow you to save portfolio contact information to your address book.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>MabryPro-Regular.ttf</string>

@@ -69,6 +69,10 @@ final class PortfolioViewModel: ObservableObject {
                     default: return (a.startDate ?? "") > (b.startDate ?? "")
                     }
                 }
+                print("🔄 App Clip received \(self.experiences.count) experiences")
+                for exp in self.experiences {
+                    print("🔄 Experience: \(exp.role) at \(exp.company), skills: \(exp.skills ?? [])")
+                }
                 self.resume = decoded.resume
                 self.skills = decoded.skills ?? []
                 self.projects = decoded.projects ?? []

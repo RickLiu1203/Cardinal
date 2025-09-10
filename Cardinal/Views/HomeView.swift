@@ -8,6 +8,7 @@
 import SwiftUI
 import FirebaseAuth
 import CoreNFC
+import Foundation
 
 // MARK: - NFC Manager
 class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate {
@@ -114,6 +115,7 @@ struct HomeView: View {
     let user: User
     @State private var errorMessage: String?
     @StateObject private var nfcManager = NFCManager()
+    @StateObject private var analytics = AnalyticsManager.shared
     
     var body: some View {
         VStack(spacing: 24) {
@@ -132,10 +134,10 @@ struct HomeView: View {
                 VStack(spacing: 12) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("5")
+                            Text("\(analytics.stats?.uniqueVisitors ?? 0)")
                                 .font(.title2)
                                 .fontWeight(.bold)
-                            Text("Cards Created")
+                            Text("Total Visitors")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -145,10 +147,10 @@ struct HomeView: View {
                         .cornerRadius(12)
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("127")
+                            Text("\(analytics.stats?.totalActions ?? 0)")
                                 .font(.title2)
                                 .fontWeight(.bold)
-                            Text("Total Views")
+                            Text("Total Actions")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -170,6 +172,36 @@ struct HomeView: View {
                         .font(.footnote)
                 }
                 
+                // Interaction logs
+                if !analytics.events.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Interaction Logs")
+                            .font(.headline)
+                        ForEach(analytics.events) { event in
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "clock")
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("\(event.timestamp) • \(event.visitorName)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(event.action)
+                                        .font(.subheadline)
+                                    if let meta = event.meta, meta.isEmpty == false {
+                                        Text(meta.map { "\($0.key)=\($0.value)" }.joined(separator: ", "))
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+
                 if let nfcMessage = nfcManager.nfcMessage {
                     HStack {
                         if nfcManager.writeSuccessful {
@@ -207,6 +239,9 @@ struct HomeView: View {
             }
         }
         .padding()
+        .task {
+            await analytics.fetchAnalytics(ownerId: user.uid)
+        }
     }
 }
 

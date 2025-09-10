@@ -41,6 +41,7 @@ class FormViewModel: ObservableObject {
         let startDateString: String
         let endDateString: String? // nil means "Present"
         let description: String?
+        let skills: [String]?
     }
     struct AboutData: Equatable {
         let header: String
@@ -252,12 +253,12 @@ class FormViewModel: ObservableObject {
     }
 
     // MARK: - Experiences
-    func addExperienceLocally(company: String, role: String, startDate: Date, endDate: Date?, description: String?) {
+    func addExperienceLocally(company: String, role: String, startDate: Date, endDate: Date?, description: String?, skills: [String]?) {
         let df = DateFormatter()
         df.dateStyle = .medium
         let startStr = df.string(from: startDate)
         let endStr = endDate.map { df.string(from: $0) }
-        let model = ExperienceData(id: UUID().uuidString, company: company, role: role, startDateString: startStr, endDateString: endStr, description: description)
+        let model = ExperienceData(id: UUID().uuidString, company: company, role: role, startDateString: startStr, endDateString: endStr, description: description, skills: skills)
         experiences.append(model)
         if selectedSections.contains(.experience) == false {
             selectedSections.append(.experience)
@@ -271,7 +272,7 @@ class FormViewModel: ObservableObject {
             }
         }
     }
-    func saveExperience(company: String, role: String, startDate: Date, endDate: Date?, description: String?, userId: String) async throws {
+    func saveExperience(company: String, role: String, startDate: Date, endDate: Date?, description: String?, skills: [String]?, userId: String) async throws {
         let df = DateFormatter()
         df.dateStyle = .medium
         let payload: [String: Any] = [
@@ -280,6 +281,7 @@ class FormViewModel: ObservableObject {
             "startDateString": df.string(from: startDate),
             "endDateString": endDate != nil ? df.string(from: endDate!) : NSNull(),
             "description": description ?? "",
+            "skills": skills ?? [],
             "createdAt": FieldValue.serverTimestamp()
         ]
         _ = try await db.collection("users").document(userId)
@@ -301,7 +303,8 @@ class FormViewModel: ObservableObject {
                 let endAny = data["endDateString"]
                 let endStr = endAny as? String
                 let desc = data["description"] as? String
-                list.append(ExperienceData(id: doc.documentID, company: company, role: role, startDateString: startStr, endDateString: endStr, description: desc))
+                let skills = data["skills"] as? [String]
+                list.append(ExperienceData(id: doc.documentID, company: company, role: role, startDateString: startStr, endDateString: endStr, description: desc, skills: skills))
             }
             list.sort { a, b in
                 switch (a.endDateString, b.endDateString) {
@@ -667,7 +670,7 @@ class FormViewModel: ObservableObject {
             }
         } catch { }
     }
-    func updateExperience(id: String, company: String, role: String, startDate: Date, endDate: Date?, description: String?) async {
+    func updateExperience(id: String, company: String, role: String, startDate: Date, endDate: Date?, description: String?, skills: [String]?) async {
         guard let userId = currentUserId else { return }
         let df = DateFormatter()
         df.dateStyle = .medium
@@ -676,7 +679,8 @@ class FormViewModel: ObservableObject {
             "role": role,
             "startDateString": df.string(from: startDate),
             "endDateString": endDate != nil ? df.string(from: endDate!) : NSNull(),
-            "description": description ?? ""
+            "description": description ?? "",
+            "skills": skills ?? []
         ]
         do {
             try await db.collection("users").document(userId)
@@ -686,7 +690,7 @@ class FormViewModel: ObservableObject {
                 if let idx = self.experiences.firstIndex(where: { $0.id == id }) {
                     let startStr = df.string(from: startDate)
                     let endStr = endDate.map { df.string(from: $0) }
-                    self.experiences[idx] = ExperienceData(id: id, company: company, role: role, startDateString: startStr, endDateString: endStr, description: description)
+                    self.experiences[idx] = ExperienceData(id: id, company: company, role: role, startDateString: startStr, endDateString: endStr, description: description, skills: skills)
                     self.experiences.sort { a, b in
                         switch (a.endDateString, b.endDateString) {
                         case (nil, _?): return true

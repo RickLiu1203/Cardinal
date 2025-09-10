@@ -15,12 +15,12 @@ struct AboutView: View {
     var body: some View {
         if let about = about {
             Section() {
-                VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 32) {
                     if !about.header.isEmpty || !about.subtitle.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             if !about.header.isEmpty {
                                 Text(about.header)
-                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .font(.system(size: 28, weight: .black, design: .rounded))
                             }
                             if !about.subtitle.isEmpty {
                                 Text(about.subtitle)
@@ -29,9 +29,9 @@ struct AboutView: View {
                         }
                     }
                     if !about.body.isEmpty {
-                        Text(about.body)
+                        Text(.init(about.body))
                             .font(.custom("MabryPro-Light", size: 18))
-                            .lineSpacing(4)
+                            .lineSpacing(8)
                     }
                     
                     if let resume = resume, let onViewTapped = onViewTapped {
@@ -41,9 +41,9 @@ struct AboutView: View {
                             }
                         }){
                             Text("check out my resume!")
-                                .font(.custom("MabryPro-Bold", size: 18))
+                                .font(.custom("MabryPro-Bold", size: 20))
                         }
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 16)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .background(
                             RoundedRectangle(cornerRadius: 4)
@@ -56,9 +56,11 @@ struct AboutView: View {
                         )
                     }
                 }
-                .padding(36)
+                .padding(.horizontal, 36)
+                .padding(.vertical, 64)
                 PageDividerView()
             }
+            .background(Color("BackgroundPrimary"))
         }
     }
 }
@@ -69,7 +71,7 @@ struct AboutView: View {
             about: PortfolioView.PresentableAbout(
                 header: "Highlights",
                 subtitle: "Software Developer",
-                body: "I'm a passionate software developer with experience in iOS development and web technologies. I love creating beautiful and functional applications."
+                body: "I'm a **passionate software developer** with experience in iOS development and web technologies. I love creating **beautiful and functional applications**."
             ),
             resume: PortfolioView.PresentableResume(
                 fileName: "John_Doe_Resume.pdf",
