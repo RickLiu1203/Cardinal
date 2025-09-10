@@ -12,78 +12,128 @@ import CoreText
 struct CardinalPortfolioClipApp: App {
     @StateObject private var vm = PortfolioViewModel()
     @State private var showLandingModal: Bool = false
+    @State private var didLogOpen: Bool = false
     init() {}
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                let injectedAbout = vm.about.map { PortfolioView.PresentableAbout(header: $0.header, subtitle: $0.subtitle, body: $0.body) }
-                let injectedExps = vm.experiences.map { item in
-                    print("🔄 App Clip mapping experience: \(item.role) at \(item.company), skills: \(item.skills ?? [])")
-                    return PortfolioView.PresentableExperience(id: item.id, company: item.company, role: item.role, startDateString: item.startDate, endDateString: item.endDate, description: item.description, skills: item.skills)
-                }
-                let injectedResume = vm.resume.map { PortfolioView.PresentableResume(fileName: $0.fileName, downloadURL: $0.downloadURL, uploadedAt: $0.uploadedAt) }
-                let injectedSkills = vm.skills.isEmpty ? nil : PortfolioView.PresentableSkills(skills: vm.skills)
-                let injectedProjects = vm.projects.map { PortfolioView.PresentableProject(id: $0.id, title: $0.title, description: $0.description, tools: $0.tools, link: $0.link) }
-                let injectedSectionOrder = vm.sectionOrder.isEmpty ? nil : vm.sectionOrder.compactMap { PortfolioView.SectionType(rawValue: $0) }
+            ZStack(alignment: .center) {
+                portfolioContent
                 
-                if let pd = vm.personalDetails {
-                    PortfolioView(
-                        overridePersonalDetails: .init(
-                            firstName: pd.firstName,
-                            lastName: pd.lastName,
-                            subtitle: pd.subtitle,
-                            email: pd.email,
-                            linkedIn: pd.linkedIn,
-                            phoneNumber: pd.phoneNumber,
-                            github: pd.github,
-                            website: pd.website
-                        ),
-                        overrideAbout: injectedAbout,
-                        overrideExperiences: injectedExps,
-                        overrideResume: injectedResume,
-                        overrideSkills: injectedSkills,
-                        overrideProjects: injectedProjects,
-                        overrideSectionOrder: injectedSectionOrder
-                    )
-                } else {
-                    PortfolioView(
-                        overridePersonalDetails: nil,
-                        overrideAbout: injectedAbout,
-                        overrideExperiences: injectedExps,
-                        overrideResume: injectedResume,
-                        overrideSkills: injectedSkills,
-                        overrideProjects: injectedProjects,
-                        overrideSectionOrder: injectedSectionOrder
-                    )
+                if showLandingModal {
+                    Color("BackgroundPrimary")
+                        .ignoresSafeArea()
+                    
+                    VStack {
+                        Spacer()
+                        LandingModalView(isPresented: $showLandingModal) {
+                            // Dismiss modal and log a visit once
+                            showLandingModal = false
+                            if !didLogOpen, let ownerId = AnalyticsManager.shared.ownerId ?? vm.lastOwnerId, !ownerId.isEmpty {
+                                AnalyticsManager.shared.logEvent(action: "page_view")
+                                didLogOpen = true
+                            }
+                        }
+                        Spacer()
+                    }
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
+                    .transition(.opacity.combined(with: .scale))
                 }
             }
+            .animation(.none, value: showLandingModal)
             .onAppear {
-                if UserDefaults.standard.bool(forKey: "clipNamePromptShown") == false {
-                    showLandingModal = true
-                    UserDefaults.standard.set(true, forKey: "clipNamePromptShown")
-                }
-                let injectedSectionOrder = vm.sectionOrder.isEmpty ? nil : vm.sectionOrder.compactMap { PortfolioView.SectionType(rawValue: $0) }
-                print("📱 App Clip using section order: \(injectedSectionOrder?.map { $0.rawValue } ?? ["default"]) ")
+                // Show modal only if we don't have a cached visitor name
+                showLandingModal = AnalyticsManager.shared.visitorName.isEmpty
             }
             .onOpenURL { url in
-                vm.apply(url: url)
-                if let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "id" })?.value, ownerId.isEmpty == false {
-                    AnalyticsManager.shared.ownerId = ownerId
-                    AnalyticsManager.shared.logEvent(action: "page_view")
-                }
+                handleOpenURL(url)
             }
             .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
                 if let url = (activity.webpageURL ?? activity.referrerURL) {
-                    vm.apply(url: url)
-                    if let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "id" })?.value, ownerId.isEmpty == false {
-                        AnalyticsManager.shared.ownerId = ownerId
-                        AnalyticsManager.shared.logEvent(action: "page_view")
-                    }
+                    handleOpenURL(url)
                 }
             }
-            .sheet(isPresented: $showLandingModal) {
-                LandingModalView(isPresented: $showLandingModal)
+        }
+    }
+    
+    // MARK: - Computed Views
+    @ViewBuilder
+    private var portfolioContent: some View {
+        PortfolioView(
+            overridePersonalDetails: personalDetailsOverride,
+            overrideAbout: aboutOverride,
+            overrideExperiences: experiencesOverride,
+            overrideResume: resumeOverride,
+            overrideSkills: skillsOverride,
+            overrideProjects: projectsOverride,
+            overrideSectionOrder: sectionOrderOverride
+        )
+    }
+    
+    // MARK: - Data Overrides (computed lazily)
+    private var personalDetailsOverride: PortfolioView.PresentablePersonalDetails? {
+        guard let pd = vm.personalDetails else { return nil }
+        return .init(
+            firstName: pd.firstName,
+            lastName: pd.lastName,
+            subtitle: pd.subtitle,
+            email: pd.email,
+            linkedIn: pd.linkedIn,
+            phoneNumber: pd.phoneNumber,
+            github: pd.github,
+            website: pd.website
+        )
+    }
+    
+    private var aboutOverride: PortfolioView.PresentableAbout? {
+        vm.about.map { PortfolioView.PresentableAbout(header: $0.header, subtitle: $0.subtitle, body: $0.body) }
+    }
+    
+    private var experiencesOverride: [PortfolioView.PresentableExperience] {
+        vm.experiences.map { item in
+            PortfolioView.PresentableExperience(
+                id: item.id,
+                company: item.company,
+                role: item.role,
+                startDateString: item.startDate,
+                endDateString: item.endDate,
+                description: item.description,
+                skills: item.skills
+            )
+        }
+    }
+    
+    private var resumeOverride: PortfolioView.PresentableResume? {
+        vm.resume.map { PortfolioView.PresentableResume(fileName: $0.fileName, downloadURL: $0.downloadURL, uploadedAt: $0.uploadedAt) }
+    }
+    
+    private var skillsOverride: PortfolioView.PresentableSkills? {
+        vm.skills.isEmpty ? nil : PortfolioView.PresentableSkills(skills: vm.skills)
+    }
+    
+    private var projectsOverride: [PortfolioView.PresentableProject] {
+        vm.projects.map { PortfolioView.PresentableProject(id: $0.id, title: $0.title, description: $0.description, tools: $0.tools, link: $0.link) }
+    }
+    
+    private var sectionOrderOverride: [PortfolioView.SectionType]? {
+        vm.sectionOrder.isEmpty ? nil : vm.sectionOrder.compactMap { PortfolioView.SectionType(rawValue: $0) }
+    }
+    
+    @ViewBuilder
+    private var loadingView: some View { EmptyView() }
+    
+    // MARK: - Helper Methods
+    private func setupInitialState() {}
+    
+    private func handleOpenURL(_ url: URL) {
+        vm.apply(url: url)
+        if let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "id" })?.value, !ownerId.isEmpty {
+            AnalyticsManager.shared.ownerId = ownerId
+            // If we already have a name, log immediately; otherwise, wait for modal submit
+            if !showLandingModal, !didLogOpen {
+                AnalyticsManager.shared.logEvent(action: "page_view")
+                didLogOpen = true
             }
         }
     }

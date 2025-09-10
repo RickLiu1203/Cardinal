@@ -34,6 +34,7 @@ class FormViewModel: ObservableObject {
         }
     }
     @Published var selectedSections: [SectionType] = []
+    private var sectionOrderApplied: Bool = false
     struct ExperienceData: Identifiable, Equatable, Codable {
         let id: String
         let company: String
@@ -128,6 +129,11 @@ class FormViewModel: ObservableObject {
     }
     
     func fetchSectionOrder(userId: String) async {
+        // Only apply section order once per session
+        guard !sectionOrderApplied else { 
+            return 
+        }
+        
         do {
             let doc = try await db.collection("users").document(userId)
                 .collection("settings").document("sectionOrder")
@@ -137,8 +143,8 @@ class FormViewModel: ObservableObject {
                let orderArray = data["sectionOrder"] as? [String] {
                 let orderedSections = orderArray.compactMap { SectionType(rawValue: $0) }
                 await MainActor.run {
-                    // Only update if we have a saved order
-                    if !orderedSections.isEmpty {
+                    // Only update if we have a saved order and haven't applied it yet
+                    if !orderedSections.isEmpty && !self.sectionOrderApplied {
                         // Filter to sections that we actually have data for
                         let sectionsWithData = orderedSections.filter { section in
                             switch section {
@@ -162,6 +168,7 @@ class FormViewModel: ObservableObject {
                         let newSections = currentSectionsSet.filter { !orderedSections.contains($0) }
                         
                         self.selectedSections = sectionsWithData + Array(newSections)
+                        self.sectionOrderApplied = true
                         print("✅ Applied section order: \(self.selectedSections.map { $0.rawValue })")
                     }
                 }
@@ -170,6 +177,11 @@ class FormViewModel: ObservableObject {
             print("Error fetching section order: \(error)")
         }
     }
+    
+    func resetSectionOrderFlag() {
+        sectionOrderApplied = false
+    }
+    
     func savePersonalDetails(_ data: PersonalDetailsData, userId: String) async throws {
         let payload: [String: Any] = [
             "firstName": data.firstName,

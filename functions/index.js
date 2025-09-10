@@ -320,3 +320,60 @@ exports.getAnalytics = onRequest(async (req, res) => {
     }
   });
 });
+
+// Returns paginated analytics events
+exports.getAnalyticsPage = onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      const ownerId = req.query.ownerId;
+      let pageSize = parseInt(req.query.pageSize || "50", 10);
+      const startAfterId = req.query.startAfterId || null;
+      if (!ownerId) {
+        return res.status(400).json({error: "missing ownerId"});
+      }
+      if (!Number.isFinite(pageSize) || pageSize <= 0) pageSize = 50;
+      pageSize = Math.min(100, Math.max(10, pageSize));
+
+      const db = admin.firestore();
+      const eventsCol = db.collection("users").doc(ownerId)
+          .collection("analytics").doc("events").collection("items");
+
+      let query = eventsCol.orderBy("createdAt", "desc").limit(pageSize);
+      if (startAfterId) {
+        const startDoc = await eventsCol.doc(startAfterId).get();
+        if (startDoc.exists) {
+          query = query.startAfter(startDoc);
+        }
+      }
+
+      const snap = await query.get();
+      const docs = snap.docs;
+      const events = docs.map((d) => {
+        const ed = d.data() || {};
+        let timestamp = "";
+        if (ed.createdAt && ed.createdAt.toDate) {
+          timestamp = ed.createdAt.toDate().toISOString();
+        }
+        return {
+          id: d.id,
+          action: ed.action || "",
+          visitorName: ed.visitorName || "anonymous",
+          deviceId: ed.deviceId || "",
+          timestamp,
+          meta: ed.meta || {},
+        };
+      });
+
+      const nextCursor = docs.length === pageSize ?
+        docs[docs.length - 1].id : null;
+
+      return res.json({
+        events,
+        nextCursor,
+      });
+    } catch (error) {
+      console.error("getAnalyticsPage error:", error);
+      return res.status(500).json({error: "internal server error"});
+    }
+  });
+});

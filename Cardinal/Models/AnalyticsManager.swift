@@ -71,6 +71,28 @@ final class AnalyticsManager: ObservableObject {
             // No-op
         }
     }
+
+    // Paginated events fetch for full logs page
+    func fetchAnalyticsPage(ownerId: String, pageSize: Int = 50, startAfterId: String? = nil) async throws -> AnalyticsPageResponse {
+        var comps = URLComponents(url: baseURL.appendingPathComponent("getAnalyticsPage"), resolvingAgainstBaseURL: false)
+        var items: [URLQueryItem] = [
+            URLQueryItem(name: "ownerId", value: ownerId),
+            URLQueryItem(name: "pageSize", value: String(pageSize))
+        ]
+        if let startAfterId = startAfterId, startAfterId.isEmpty == false {
+            items.append(URLQueryItem(name: "startAfterId", value: startAfterId))
+        }
+        comps?.queryItems = items
+        guard let url = comps?.url else {
+            throw URLError(.badURL)
+        }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        let decoded = try JSONDecoder().decode(AnalyticsPageResponse.self, from: data)
+        return decoded
+    }
 }
 
 struct AnalyticsStats: Codable {
@@ -90,6 +112,11 @@ struct AnalyticsEvent: Codable, Identifiable {
 struct GetAnalyticsResponse: Codable {
     let stats: AnalyticsStats
     let events: [AnalyticsEvent]
+}
+
+struct AnalyticsPageResponse: Codable {
+    let events: [AnalyticsEvent]
+    let nextCursor: String?
 }
 
 

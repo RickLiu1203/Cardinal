@@ -113,135 +113,249 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate {
 
 struct HomeView: View {
     let user: User
+    let switchToTab: (Int) -> Void
     @State private var errorMessage: String?
     @StateObject private var nfcManager = NFCManager()
     @StateObject private var analytics = AnalyticsManager.shared
-    
+    @EnvironmentObject private var formViewModel: FormViewModel
+
+    private let logsContainerHeight: CGFloat = 275
+    private let maxLogsToRender: Int = 10
+
+    // Cached date formatters to avoid per-row instantiation cost
+    private static let isoWithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    private static let isoBasic: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        return formatter
+    }()
+    private static let displayDateFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.locale = Locale.current
+        df.calendar = Calendar(identifier: .gregorian)
+        df.dateFormat = "MMM d, yyyy - HH:mm"
+        return df
+    }()
+
+    private var fullName: String {
+        let first = formViewModel.personalDetails?.firstName ?? ""
+        let last = formViewModel.personalDetails?.lastName ?? ""
+        let name = [first, last].filter { !$0.isEmpty }.joined(separator: " ")
+        if name.isEmpty { return user.displayName ?? "" }
+        return name
+    }
+    private var emailText: String {
+        formViewModel.personalDetails?.email ?? user.email ?? ""
+    }
+    private var phoneText: String {
+        let phone = formViewModel.personalDetails?.phoneNumber ?? ""
+        return phone.isEmpty ? "—" : phone
+    }
+    private var projectsCount: Int { formViewModel.projects.count }
+    private var skillsCount: Int { formViewModel.skills?.skills.count ?? 0 }
+    private var experiencesCount: Int { formViewModel.experiences.count }
+
     var body: some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 16) {
-                Text("Welcome to Cardinal")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                Text("Signed in as")
-                    .foregroundColor(.secondary)
-                Text(user.email ?? user.displayName ?? user.uid)
-                    .font(.headline)
-            }
-            
-            VStack(spacing: 20) {
-                VStack(spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(analytics.stats?.uniqueVisitors ?? 0)")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            Text("Total Visitors")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(analytics.stats?.totalActions ?? 0)")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            Text("Total Actions")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            VStack(spacing: 12) {
-                if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .font(.footnote)
-                }
-                
-                // Interaction logs
-                if !analytics.events.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Interaction Logs")
-                            .font(.headline)
-                        ForEach(analytics.events) { event in
-                            HStack(alignment: .top, spacing: 8) {
-                                Image(systemName: "clock")
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("\(event.timestamp) • \(event.visitorName)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text(event.action)
-                                        .font(.subheadline)
-                                    if let meta = event.meta, meta.isEmpty == false {
-                                        Text(meta.map { "\($0.key)=\($0.value)" }.joined(separator: ", "))
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                Spacer(minLength: 0)
-                            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 16) {
+                Text("YOUR PORTFOLIO")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundColor(Color("TextPrimary"))
+                VStack(alignment: .leading, spacing: 32) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(fullName.isEmpty ? "" : fullName)
+                            .font(.custom("MabryPro-Black", size: 24)) 
+                            .foregroundColor(Color("TextPrimary"))
+                        if !(formViewModel.personalDetails?.subtitle ?? "").isEmpty {
+                            Text(formViewModel.personalDetails?.subtitle ?? "")
+                                .font(.custom("MabryPro-Italic", size: 20))
+                                .foregroundColor(Color("TextPrimary"))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
+
+
+                    // Metrics inside card
+                    HStack(spacing: 0) {
+                        metricView(icon: "chevron.left.slash.chevron.right", value: skillsCount, label: "SKILLS")
+                        Spacer()
+                        metricView(icon: "briefcase.fill", value: experiencesCount, label: "EXPERIENCES")
+                        Spacer()
+                        metricView(icon: "folder.fill", value: projectsCount, label: "PROJECTS")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(32)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.homeAccent)
+                        .shadow(color: .black, radius: 0, x: 4, y: 4)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(stops: [
+                                    .init(color: Color.clear, location: 0.0),
+                                    .init(color: Color.white.opacity(0.5), location: 0.6),
+                                    .init(color: Color.clear, location: 1.0)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.black, lineWidth: 1.5)
+                )
                 }
 
-                if let nfcMessage = nfcManager.nfcMessage {
-                    HStack {
-                        if nfcManager.writeSuccessful {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        }
-                        Text(nfcMessage)
-                            .foregroundColor(nfcManager.writeSuccessful ? .green : .red)
-                            .multilineTextAlignment(.center)
+                // Interaction Logs preview (non-scrollable, fills container, navigates to full page on tap)
+                VStack(alignment: .leading, spacing: 12) {
+                    if analytics.events.isEmpty {
+                        Text("No interactions yet.")
                             .font(.footnote)
+                            .foregroundColor(.secondary)
+                    } else {
+                        VStack(alignment: .leading, spacing: 14) {
+                            ForEach(Array(analytics.events.prefix(3))) { event in
+                                ReusableLogRowView(
+                                    actionType: event.action,
+                                    formattedTime: formattedTimestamp(event.timestamp),
+                                    userName: event.visitorName,
+                                    link: event.meta?["url"],
+                                    shouldTruncate: true
+                                )
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.3))
+                                    .frame(height: 1)
+                            }
+                            Button {
+                                switchToTab(1)
+                            } label: {
+                                Text("View All")
+                                    .font(.custom("MabryPro-Bold", size: 16))
+                                    .foregroundColor(Color("TextPrimary"))
+                                    .underline()
+                            }
+                            .padding(.top, 4)
+                        }
+                        .padding(24)
+                        .frame(height: logsContainerHeight)
                     }
                 }
-                
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color("BackgroundPrimary"))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.black, lineWidth: 1.5)
+                )
+
+                // NFC Button styled like design
                 Button {
                     nfcManager.writeToNFC(for: user)
                 } label: {
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: "dot.radiowaves.left.and.right")
-                        Text(nfcManager.isWritingToNFC ? "Writing to NFC..." : "Write Portfolio to NFC")
+                            .font(.body.weight(.black))
+                        Text(nfcManager.isWritingToNFC ? "WRITING TO NFC..." : "WRITE PORTFOLIO TO NFC")
+                            .font(.custom("MabryPro-Black", size: 18))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(.vertical, 20)
+                    .foregroundColor(Color("TextPrimary"))
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
                 .disabled(nfcManager.isWritingToNFC || !NFCNDEFReaderSession.readingAvailable)
-                
-                Button(role: .destructive) {
-                    signOut()
-                } label: {
-                    Text("Sign out")
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.black, lineWidth: 1.5)
+                )
+                .background{
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.homeAccent)
+                        .shadow(color: .black, radius: 0, x: 4, y: 4)
                 }
-                .buttonStyle(.borderedProminent)
+
             }
+            .padding(16)
+            .padding(.top, 16)
         }
-        .padding()
+        .safeAreaInset(edge: .top) {
+            Color.clear.frame(height: 0)
+        }
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 0)
+        }
+        .background(Color("BackgroundPrimary"))
+        .refreshable {
+            await refreshAnalytics()
+        }
         .task {
             await analytics.fetchAnalytics(ownerId: user.uid)
+            // Fetch portfolio data to populate counts and card details
+            await formViewModel.fetchPersonalDetails(userId: user.uid)
+            await formViewModel.fetchExperiences(userId: user.uid)
+            await formViewModel.fetchSkills(userId: user.uid)
+            await formViewModel.fetchProjects(userId: user.uid)
         }
+    }
+
+    // MARK: - Refresh
+    private func refreshAnalytics() async {
+        await analytics.fetchAnalytics(ownerId: user.uid)
+    }
+
+    // MARK: - Subviews
+    private func summaryTile(title: String, value: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(value)")
+                .font(.title3)
+                .fontWeight(.bold)
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .cornerRadius(12)
+    }
+
+    private func metricView(icon: String, value: Int, label: String) -> some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .foregroundColor(Color.homeAccent)
+                Text("\(value)")
+                    .font(.custom("MabryPro-BlackItalic", size: 20))
+                    .foregroundColor(Color.black)
+            }
+            Text(label)
+                .font(.custom("MabryPro-Medium", size: 14))
+                .foregroundColor(Color("TextPrimary"))
+                .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func formattedTimestamp(_ isoString: String) -> String {
+        var parsedDate = HomeView.isoWithFractionalSeconds.date(from: isoString)
+            ?? HomeView.isoBasic.date(from: isoString)
+        if parsedDate == nil, let numeric = Double(isoString) {
+            // Fallback: numeric timestamp (sec or ms)
+            parsedDate = isoString.count > 11
+                ? Date(timeIntervalSince1970: numeric / 1000.0)
+                : Date(timeIntervalSince1970: numeric)
+        }
+        return HomeView.displayDateFormatter.string(from: parsedDate ?? Date())
     }
 }
 
@@ -249,6 +363,8 @@ struct HomeView: View {
 private extension HomeView {
     func signOut() {
         do {
+            // Reset section order flag before signing out
+            formViewModel.resetSectionOrderFlag()
             try Auth.auth().signOut()
         } catch {
             errorMessage = error.localizedDescription
