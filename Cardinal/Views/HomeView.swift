@@ -174,7 +174,6 @@ struct HomeView: View {
     var body: some View {
         Group {
             if isDataLoading {
-                // Loading view with CardinalLogo
                 VStack {
                     Spacer()
                     
@@ -387,9 +386,10 @@ struct HomeView: View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
                     .foregroundColor(Color.black)
                 Text("\(value)")
-                    .font(.custom("MabryPro-BlackItalic", size: 20))
+                    .font(.custom("MabryPro-BlackItalic", size: 18))
                     .foregroundColor(Color.black)
             }
             Text(label)

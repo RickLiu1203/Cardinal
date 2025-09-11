@@ -15,6 +15,11 @@ struct LogsView: View {
     @State private var isLoadingAnalytics = true
     @State private var isLoadingEvents = true
     
+    // Secret clear functionality
+    @State private var headerTapCount = 0
+    @State private var lastTapTime = Date()
+    @State private var tapResetTask: Task<Void, Never>?
+    
     private var isDataLoading: Bool {
         isLoadingAnalytics || isLoadingEvents
     }
@@ -71,6 +76,9 @@ struct LogsView: View {
                         Text("ACTIVITY LOG")
                                 .font(.system(size: 28, weight: .black, design: .rounded))
                                 .foregroundColor(Color("TextPrimary"))
+                                .onTapGesture {
+                                    handleHeaderTap()
+                                }
                 HStack(spacing: 32) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("\(uniqueVisitorsCount)")
@@ -164,11 +172,15 @@ struct LogsView: View {
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
                 await self.fetchStats()
-                self.isLoadingAnalytics = false
+                await MainActor.run {
+                    self.isLoadingAnalytics = false
+                }
             }
             group.addTask {
                 await self.fetchNext(reset: true)
-                self.isLoadingEvents = false
+                await MainActor.run {
+                    self.isLoadingEvents = false
+                }
             }
         }
         isInitialLoaded = true
@@ -273,5 +285,81 @@ struct LogsView: View {
                 : Date(timeIntervalSince1970: numeric)
         }
         return LogsView.displayDateFormatter.string(from: parsedDate ?? Date())
+    }
+    
+    // MARK: - Secret Clear Functionality
+    
+    private func handleHeaderTap() {
+        let now = Date()
+        let timeSinceLastTap = now.timeIntervalSince(lastTapTime)
+        
+        // Reset counter if more than 3 seconds have passed since last tap
+        if timeSinceLastTap > 3.0 {
+            headerTapCount = 0
+        }
+        
+        headerTapCount += 1
+        lastTapTime = now
+        
+        // Cancel any existing reset task
+        tapResetTask?.cancel()
+        
+        // Set up a task to reset the counter after 3 seconds of inactivity
+        tapResetTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            if !Task.isCancelled {
+                await MainActor.run {
+                    headerTapCount = 0
+                }
+            }
+        }
+        
+        print("Header tapped \(headerTapCount) times")
+        
+        // If we've reached 7 taps, clear all analytics
+        if headerTapCount >= 7 {
+            clearAllAnalytics()
+        }
+    }
+    
+    private func clearAllAnalytics() {
+        print("🧹 Clearing all analytics data...")
+        
+        // Provide haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+        impactFeedback.impactOccurred()
+        
+        Task {
+            do {
+                try await AnalyticsManager.shared.clearAllAnalytics(ownerId: ownerId)
+                
+                await MainActor.run {
+                    // Clear local state
+                    events = []
+                    stats = AnalyticsStats(uniqueVisitors: 0, totalActions: 0)
+                    nextCursor = nil
+                    
+                    // Reset loading states to show the loading screen briefly
+                    isLoadingAnalytics = true
+                    isLoadingEvents = true
+                    isInitialLoaded = false
+                    
+                    // Reset tap counter
+                    headerTapCount = 0
+                    
+                    print("✅ Analytics cleared successfully!")
+                }
+                
+                // Brief delay to show loading screen, then reload fresh data
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                await initialLoad()
+                
+            } catch {
+                print("❌ Failed to clear analytics: \(error)")
+                await MainActor.run {
+                    headerTapCount = 0
+                }
+            }
+        }
     }
 }

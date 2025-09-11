@@ -323,6 +323,59 @@ exports.getAnalytics = onRequest(async (req, res) => {
   });
 });
 
+// Clears all analytics data for a specific owner
+exports.clearAllAnalytics = onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      if (req.method !== "POST") {
+        return res.status(405).json({error: "method not allowed"});
+      }
+
+      const {ownerId} = req.body || {};
+      if (!ownerId) {
+        return res.status(400).json({error: "missing ownerId"});
+      }
+
+      const db = admin.firestore();
+
+      // Delete all analytics data in a batch operation
+      const batch = db.batch();
+
+      // Clear stats
+      const statsRef = db.collection("users").doc(ownerId)
+          .collection("analytics").doc("stats");
+      batch.set(statsRef, {uniqueVisitors: 0, totalActions: 0});
+
+      // Clear all events
+      const eventsCol = db.collection("users").doc(ownerId)
+          .collection("analytics").doc("events").collection("items");
+      const eventsSnap = await eventsCol.get();
+      eventsSnap.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      // Clear all visitors
+      const visitorsCol = db.collection("users").doc(ownerId)
+          .collection("analytics").doc("visitors").collection("devices");
+      const visitorsSnap = await visitorsCol.get();
+      visitorsSnap.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      console.log(`🧹 All analytics data cleared for owner: ${ownerId}`);
+      return res.json({
+        ok: true,
+        message: "Analytics data cleared successfully",
+      });
+    } catch (error) {
+      console.error("clearAllAnalytics error:", error);
+      return res.status(500).json({error: "internal server error"});
+    }
+  });
+});
+
 // Returns paginated analytics events
 exports.getAnalyticsPage = onRequest(async (req, res) => {
   return cors(req, res, async () => {

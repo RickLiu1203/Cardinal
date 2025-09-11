@@ -95,6 +95,29 @@ final class AnalyticsManager: ObservableObject {
         }
     }
 
+    // Clear all analytics data for a specific owner
+    func clearAllAnalytics(ownerId: String) async throws {
+        let url = baseURL.appendingPathComponent("clearAllAnalytics")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let payload: [String: Any] = ["ownerId": ownerId]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        
+        // Clear local data as well
+        await MainActor.run {
+            self.stats = AnalyticsStats(uniqueVisitors: 0, totalActions: 0)
+            self.events = []
+        }
+        
+        print("🧹 All analytics data cleared for owner: \(ownerId)")
+    }
+
     // Paginated events fetch for full logs page
     func fetchAnalyticsPage(ownerId: String, pageSize: Int = 50, startAfterId: String? = nil) async throws -> AnalyticsPageResponse {
         var comps = URLComponents(url: baseURL.appendingPathComponent("getAnalyticsPage"), resolvingAgainstBaseURL: false)
