@@ -90,7 +90,7 @@ final class NotificationManager: NSObject, ObservableObject, UNUserNotificationC
         
         let body: [String: Any] = [
             "token": deviceToken,
-            "seconds": 600,
+            "seconds": 180,
             "bundleId": "com.rzliu.Cardinal.Clip",
             "title": "\(personalDetails != nil ? "\(personalDetails!.firstName.capitalized)'s" : "My") Portfolio!",
             "body": "Please feel free to reach out via email or LinkedIn!",

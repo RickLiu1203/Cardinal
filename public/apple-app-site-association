@@ -1,0 +1,25 @@
+{
+  "appclips": {
+    "apps": [
+      {
+        "appID": "6JX3V33MZG.com.rzliu.Cardinal.Clip",
+        "paths": [
+          "/portfolio",
+          "/portfolio/*"
+        ]
+      }
+    ]
+  },
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "6JX3V33MZG.com.rzliu.Cardinal",
+        "paths": [
+          "/portfolio",
+          "/portfolio/*"
+        ]
+      }
+    ]
+  }
+}

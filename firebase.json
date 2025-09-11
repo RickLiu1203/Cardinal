@@ -36,6 +36,10 @@
       {
         "source": "/files/**",
         "function": "serveFile"
+      },
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "destination": "/apple-app-site-association"
       }
     ],
     "headers": [
@@ -49,6 +53,24 @@
           {
             "key": "Content-Type",
             "value": "application/pdf"
+          }
+        ]
+      },
+      {
+        "source": "/apple-app-site-association",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
           }
         ]
       }
