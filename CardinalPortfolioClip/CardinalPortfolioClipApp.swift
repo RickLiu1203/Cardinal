@@ -13,47 +13,59 @@ struct CardinalPortfolioClipApp: App {
     @StateObject private var vm = PortfolioViewModel()
     @State private var showLandingModal: Bool = false
     @State private var didLogOpen: Bool = false
+    @State private var showingSplash = true
     init() {}
 
     var body: some Scene {
         WindowGroup {
-            ZStack(alignment: .center) {
-                portfolioContent
-                
-                if showLandingModal {
-                    Color("BackgroundPrimary")
-                        .ignoresSafeArea()
-                    
-                    VStack {
-                        Spacer()
-                        LandingModalView(isPresented: $showLandingModal, ownerId: AnalyticsManager.shared.ownerId ?? vm.lastOwnerId ?? "") {
-                            // Dismiss modal and log a visit once
-                            showLandingModal = false
-                            if !didLogOpen, let ownerId = AnalyticsManager.shared.ownerId ?? vm.lastOwnerId, !ownerId.isEmpty {
-                                AnalyticsManager.shared.logEvent(action: "page_view")
-                                didLogOpen = true
+            if showingSplash {
+                SplashView()
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showingSplash = false
                             }
                         }
-                        Spacer()
                     }
-                    .ignoresSafeArea(.keyboard, edges: .bottom)
-                    .transition(.opacity.combined(with: .scale))
+            } else {
+                ZStack(alignment: .center) {
+                    portfolioContent
+                    
+                    if showLandingModal {
+                        Color("BackgroundPrimary")
+                            .ignoresSafeArea()
+                        
+                        VStack {
+                            Spacer()
+                            LandingModalView(isPresented: $showLandingModal, ownerId: AnalyticsManager.shared.ownerId ?? vm.lastOwnerId ?? "") {
+                                // Dismiss modal and log a visit once
+                                showLandingModal = false
+                                if !didLogOpen, let ownerId = AnalyticsManager.shared.ownerId ?? vm.lastOwnerId, !ownerId.isEmpty {
+                                    AnalyticsManager.shared.logEvent(action: "page_view")
+                                    didLogOpen = true
+                                }
+                            }
+                            Spacer()
+                        }
+                        .ignoresSafeArea(.keyboard, edges: .bottom)
+                        .transition(.opacity.combined(with: .scale))
+                    }
                 }
-            }
-            .animation(.none, value: showLandingModal)
-            .onAppear {
-                // Initial setup - check if we already have an ownerId from a previous URL handling
-                if let existingOwnerId = AnalyticsManager.shared.ownerId, !existingOwnerId.isEmpty {
-                    showLandingModal = AnalyticsManager.shared.visitorName.isEmpty
+                .animation(.none, value: showLandingModal)
+                .onAppear {
+                    // Initial setup - check if we already have an ownerId from a previous URL handling
+                    if let existingOwnerId = AnalyticsManager.shared.ownerId, !existingOwnerId.isEmpty {
+                        showLandingModal = AnalyticsManager.shared.visitorName.isEmpty
+                    }
+                    // Otherwise, wait for URL handling to set the modal state
                 }
-                // Otherwise, wait for URL handling to set the modal state
-            }
-            .onOpenURL { url in
-                handleOpenURL(url)
-            }
-            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
-                if let url = (activity.webpageURL ?? activity.referrerURL) {
+                .onOpenURL { url in
                     handleOpenURL(url)
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    if let url = (activity.webpageURL ?? activity.referrerURL) {
+                        handleOpenURL(url)
+                    }
                 }
             }
         }
@@ -155,5 +167,30 @@ struct CardinalPortfolioClipApp: App {
                 didLogOpen = true
             }
         }
+    }
+}
+
+// MARK: - Splash Screen
+struct SplashView: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Spacer()
+            
+            Image("CardinalLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 72, height: 72)
+                .scaleEffect(isAnimating ? 1.1 : 1.0)
+                .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAnimating)
+                .onAppear {
+                    isAnimating = true
+                }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color("BackgroundPrimary"))
     }
 }

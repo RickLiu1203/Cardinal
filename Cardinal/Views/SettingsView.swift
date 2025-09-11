@@ -11,6 +11,7 @@ import FirebaseAuth
 struct SettingsView: View {
     @EnvironmentObject var formViewModel: FormViewModel
     @State private var errorMessage: String?
+    @State private var isSignOutButtonPressed = false
     
     var body: some View {
         ScrollView {
@@ -21,20 +22,15 @@ struct SettingsView: View {
                     .foregroundColor(Color("TextPrimary"))
 
                 // Sign Out button
-                Button {
-                    signOut()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.body.weight(.black))
-                        Text("SIGN OUT")
-                            .font(.custom("MabryPro-Black", size: 18))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .foregroundColor(Color("TextPrimary"))
+                HStack(spacing: 8) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.body.weight(.black))
+                    Text("SIGN OUT")
+                        .font(.custom("MabryPro-Black", size: 18))
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .foregroundColor(Color("TextPrimary"))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(Color.black, lineWidth: 1.5)
@@ -42,7 +38,22 @@ struct SettingsView: View {
                 .background{
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(Color.signOutButton)
-                        .shadow(color: .black, radius: 0, x: 4, y: 4)
+                        .shadow(color: isSignOutButtonPressed ? .clear : .black, radius: 0, x: isSignOutButtonPressed ? 0 : 4, y: isSignOutButtonPressed ? 0 : 4)
+                }
+                .offset(x: isSignOutButtonPressed ? 4 : 0, y: isSignOutButtonPressed ? 4 : 0)
+                .animation(.easeInOut(duration: 0.1), value: isSignOutButtonPressed)
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.05)) {
+                        isSignOutButtonPressed = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeInOut(duration: 0.05)) {
+                            isSignOutButtonPressed = false
+                        }
+                        
+                        signOut()
+                    }
                 }
 
                 if let errorMessage {

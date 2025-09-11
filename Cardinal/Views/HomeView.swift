@@ -115,9 +115,22 @@ struct HomeView: View {
     let user: User
     let switchToTab: (Int) -> Void
     @State private var errorMessage: String?
+    @State private var isNfcButtonPressed = false
     @StateObject private var nfcManager = NFCManager()
     @StateObject private var analytics = AnalyticsManager.shared
     @EnvironmentObject private var formViewModel: FormViewModel
+    
+    // Loading states
+    @State private var isLoadingAnalytics = true
+    @State private var isLoadingPersonalDetails = true
+    @State private var isLoadingExperiences = true
+    @State private var isLoadingSkills = true
+    @State private var isLoadingProjects = true
+    
+    private var isDataLoading: Bool {
+        isLoadingAnalytics || isLoadingPersonalDetails || 
+        isLoadingExperiences || isLoadingSkills || isLoadingProjects
+    }
 
     private let logsContainerHeight: CGFloat = 275
     private let maxLogsToRender: Int = 10
@@ -159,17 +172,40 @@ struct HomeView: View {
     private var experiencesCount: Int { formViewModel.experiences.count }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 16) {
-                Text("YOUR PORTFOLIO")
-                    .font(.system(size: 28, weight: .black, design: .rounded))
-                    .foregroundColor(Color("TextPrimary"))
+        Group {
+            if isDataLoading {
+                // Loading view with CardinalLogo
+                VStack(spacing: 8) {
+                    Spacer()
+                    
+                    Image("CardinalLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 56, height: 56)
+                        .scaleEffect(isDataLoading ? 1.0 : 0.8)
+                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isDataLoading)
+                    
+                    Text("Loading...")
+                        .font(.custom("MabryPro-BlackItalic", size: 20))
+                        .foregroundColor(Color("TextPrimary"))
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color("BackgroundPrimary"))
+            } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 16) {
+                    Text("YOUR PORTFOLIO")
+                        .font(.system(size: 28, weight: .black, design: .rounded))
+                        .foregroundColor(Color("TextPrimary"))
                 VStack(alignment: .leading, spacing: 32) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(fullName.isEmpty ? "" : fullName)
-                            .font(.custom("MabryPro-Black", size: 24)) 
+                            .font(.custom("MabryPro-Black", size: 28)) 
                             .foregroundColor(Color("TextPrimary"))
+                            .kerning(1)
                         if !(formViewModel.personalDetails?.subtitle ?? "").isEmpty {
                             Text(formViewModel.personalDetails?.subtitle ?? "")
                                 .font(.custom("MabryPro-Italic", size: 18))
@@ -259,21 +295,15 @@ struct HomeView: View {
                 )
 
                 // NFC Button styled like design
-                Button {
-                    nfcManager.writeToNFC(for: user)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "dot.radiowaves.left.and.right")
-                            .font(.body.weight(.black))
-                        Text(nfcManager.isWritingToNFC ? "WRITING TO NFC..." : "WRITE PORTFOLIO TO NFC")
-                            .font(.custom("MabryPro-Black", size: 18))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .foregroundColor(Color("TextPrimary"))
+                HStack(spacing: 8) {
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(.body.weight(.black))
+                    Text(nfcManager.isWritingToNFC ? "WRITING TO NFC..." : "WRITE PORTFOLIO TO NFC")
+                        .font(.custom("MabryPro-Black", size: 18))
                 }
-                .buttonStyle(.plain)
-                .disabled(nfcManager.isWritingToNFC || !NFCNDEFReaderSession.readingAvailable)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .foregroundColor(Color("TextPrimary"))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(Color.black, lineWidth: 1.5)
@@ -281,35 +311,65 @@ struct HomeView: View {
                 .background{
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(Color.homeAccent)
-                        .shadow(color: .black, radius: 0, x: 4, y: 4)
+                        .shadow(color: isNfcButtonPressed ? .clear : .black, radius: 0, x: isNfcButtonPressed ? 0 : 4, y: isNfcButtonPressed ? 0 : 4)
+                }
+                .offset(x: isNfcButtonPressed ? 4 : 0, y: isNfcButtonPressed ? 4 : 0)
+                .animation(.easeInOut(duration: 0.1), value: isNfcButtonPressed)
+                .onTapGesture {
+                    guard !nfcManager.isWritingToNFC && NFCNDEFReaderSession.readingAvailable else { return }
+                    
+                    withAnimation(.easeInOut(duration: 0.05)) {
+                        isNfcButtonPressed = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeInOut(duration: 0.05)) {
+                            isNfcButtonPressed = false
+                        }
+                        
+                        nfcManager.writeToNFC(for: user)
+                    }
                 }
 
+                }
+                .padding(16)
+                .padding(.top, 16)
             }
-            .padding(16)
-            .padding(.top, 16)
-        }
-        .safeAreaInset(edge: .top) {
-            Color.clear.frame(height: 0)
-        }
-        .safeAreaInset(edge: .bottom) {
-            Color.clear.frame(height: 0)
-        }
-        .background(Color("BackgroundPrimary"))
-        .refreshable {
-            await refreshAnalytics()
+            .safeAreaInset(edge: .top) {
+                Color.clear.frame(height: 0)
+            }
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 0)
+            }
+            .background(Color("BackgroundPrimary"))
+            .refreshable {
+                await refreshAnalytics()
+            }
+            }
         }
         .task {
+            // Fetch analytics
             await analytics.fetchAnalytics(ownerId: user.uid)
+            isLoadingAnalytics = false
+            
             // Fetch portfolio data to populate counts and card details
             await formViewModel.fetchPersonalDetails(userId: user.uid)
+            isLoadingPersonalDetails = false
+            
             await formViewModel.fetchExperiences(userId: user.uid)
+            isLoadingExperiences = false
+            
             await formViewModel.fetchSkills(userId: user.uid)
+            isLoadingSkills = false
+            
             await formViewModel.fetchProjects(userId: user.uid)
+            isLoadingProjects = false
         }
     }
 
     // MARK: - Refresh
     private func refreshAnalytics() async {
+        // Don't show loading screen on refresh, just refresh the analytics
         await analytics.fetchAnalytics(ownerId: user.uid)
     }
 

@@ -77,6 +77,22 @@ struct PortfolioView: View {
     @State private var showingSafariView = false
     @State private var safariURL: URL?
     
+    // Loading states (only for main app, not App Clip)
+    #if !APPCLIP
+    @State private var isLoadingPersonalDetails = true
+    @State private var isLoadingAbout = true
+    @State private var isLoadingExperiences = true
+    @State private var isLoadingResume = true
+    @State private var isLoadingSkills = true
+    @State private var isLoadingProjects = true
+    @State private var isLoadingSectionOrder = true
+    
+    private var isDataLoading: Bool {
+        isLoadingPersonalDetails || isLoadingAbout || isLoadingExperiences || 
+        isLoadingResume || isLoadingSkills || isLoadingProjects || isLoadingSectionOrder
+    }
+    #endif
+    
     init(overridePersonalDetails: PresentablePersonalDetails? = nil,
          overrideAbout: PresentableAbout? = nil,
          overrideExperiences: [PresentableExperience]? = nil,
@@ -235,6 +251,65 @@ struct PortfolioView: View {
     }
     
     var body: some View {
+        #if !APPCLIP
+        Group {
+            if isDataLoading {
+                // Loading view with CardinalLogo (same as HomeView)
+                VStack(spacing: 8) {
+                    Spacer()
+                    
+                    Image("CardinalLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 56, height: 56)
+                        .scaleEffect(isDataLoading ? 1.0 : 0.8)
+                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isDataLoading)
+                    
+                    Text("Loading...")
+                        .font(.custom("MabryPro-BlackItalic", size: 20))
+                        .foregroundColor(Color("TextPrimary"))
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color("BackgroundPrimary"))
+            } else {
+                portfolioContent
+            }
+        }
+        .onAppear {
+            if let uid = Auth.auth().currentUser?.uid {
+                Task {
+                    await formViewModel.fetchPersonalDetails(userId: uid)
+                    isLoadingPersonalDetails = false
+                    
+                    await formViewModel.fetchAbout(userId: uid)
+                    isLoadingAbout = false
+                    
+                    await formViewModel.fetchExperiences(userId: uid)
+                    isLoadingExperiences = false
+                    
+                    await formViewModel.fetchResume(userId: uid)
+                    isLoadingResume = false
+                    
+                    await formViewModel.fetchSkills(userId: uid)
+                    isLoadingSkills = false
+                    
+                    await formViewModel.fetchProjects(userId: uid)
+                    isLoadingProjects = false
+                    
+                    await formViewModel.fetchSectionOrder(userId: uid)
+                    isLoadingSectionOrder = false
+                }
+            }
+        }
+        #else
+        portfolioContent
+        #endif
+    }
+    
+    @ViewBuilder
+    private var portfolioContent: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -255,22 +330,6 @@ struct PortfolioView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color("BackgroundPrimary"))
             .ignoresSafeArea(edges: .bottom)
-            #if !APPCLIP
-            .onAppear {
-                if let uid = Auth.auth().currentUser?.uid {
-                    Task {
-                        await formViewModel.fetchPersonalDetails(userId: uid)
-                        await formViewModel.fetchAbout(userId: uid)
-                        await formViewModel.fetchExperiences(userId: uid)
-                        await formViewModel.fetchResume(userId: uid)
-                        await formViewModel.fetchSkills(userId: uid)
-                        await formViewModel.fetchProjects(userId: uid)
-                        
-                        await formViewModel.fetchSectionOrder(userId: uid)
-                    }
-                }
-            }
-            #endif
         }
         .background(Color("BackgroundPrimary").ignoresSafeArea())
         .sheet(isPresented: $showingSafariView) {

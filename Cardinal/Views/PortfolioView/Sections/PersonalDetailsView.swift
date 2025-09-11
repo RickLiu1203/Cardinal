@@ -107,7 +107,7 @@ struct PersonalDetailsView: View {
 
             }   
             .padding(.horizontal, 36)
-            .padding(.top, 36)
+            .padding(.top, 48)
             .padding(.bottom, 48)
             PageDividerView()
         }

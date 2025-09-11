@@ -25,22 +25,16 @@ struct RootTabView: View {
                 .allowsHitTesting(selectedTab == 1)
                 
                 NavigationStack {
-                    DetailsFormView()
+                    PortfolioView()
                 }
                 .opacity(selectedTab == 2 ? 1 : 0)
                 .allowsHitTesting(selectedTab == 2)
-                
-                NavigationStack {
-                    PortfolioView()
-                }
-                .opacity(selectedTab == 3 ? 1 : 0)
-                .allowsHitTesting(selectedTab == 3)
 
                 NavigationStack {
                     SettingsView()
                 }
-                .opacity(selectedTab == 4 ? 1 : 0)
-                .allowsHitTesting(selectedTab == 4)
+                .opacity(selectedTab == 3 ? 1 : 0)
+                .allowsHitTesting(selectedTab == 3)
             }
             .animation(.none, value: selectedTab)
             
@@ -61,24 +55,17 @@ struct RootTabView: View {
                 )
                 
                 CustomTabButton(
-                    icon: "square.and.pencil",
-                    title: "Details",
-                    isSelected: selectedTab == 2,
-                    action: { selectedTab = 2 }
-                )
-                
-                CustomTabButton(
                     icon: "person.crop.square",
                     title: "Portfolio",
-                    isSelected: selectedTab == 3,
-                    action: { selectedTab = 3 }
+                    isSelected: selectedTab == 2,
+                    action: { selectedTab = 2 }
                 )
 
                 CustomTabButton(
                     icon: "gearshape.fill",
                     title: "Settings",
-                    isSelected: selectedTab == 4,
-                    action: { selectedTab = 4 }
+                    isSelected: selectedTab == 3,
+                    action: { selectedTab = 3 }
                 )
             }
             .padding(.horizontal, 8)

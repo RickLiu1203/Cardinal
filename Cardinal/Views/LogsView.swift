@@ -10,6 +10,14 @@ struct LogsView: View {
     @State private var refreshTask: Task<Void, Never>?
     @State private var stats: AnalyticsStats? = nil
     @State private var isLoadingStats: Bool = false
+    
+    // Loading states for the loading screen
+    @State private var isLoadingAnalytics = true
+    @State private var isLoadingEvents = true
+    
+    private var isDataLoading: Bool {
+        isLoadingAnalytics || isLoadingEvents
+    }
 
     private let pageSize: Int = 30
     private let loadMoreThreshold: Int = 5
@@ -41,11 +49,32 @@ struct LogsView: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("ACTIVITY LOG")
-                        .font(.system(size: 28, weight: .black, design: .rounded))
+        Group {
+            if isDataLoading {
+                VStack(spacing: 8) {
+                    Spacer()
+                    
+                    Image("CardinalLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 56, height: 56)
+                        .scaleEffect(isDataLoading ? 1.0 : 0.8)
+                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isDataLoading)
+                    
+                    Text("Loading...")
+                        .font(.custom("MabryPro-BlackItalic", size: 20))
                         .foregroundColor(Color("TextPrimary"))
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color("BackgroundPrimary"))
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        Text("ACTIVITY LOG")
+                                .font(.system(size: 28, weight: .black, design: .rounded))
+                                .foregroundColor(Color("TextPrimary"))
                 HStack(spacing: 32) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("\(uniqueVisitorsCount)")
@@ -108,7 +137,7 @@ struct LogsView: View {
                         }
                     }
                     .padding(.horizontal, 2)
-                    .padding(.top, 16)
+                    .padding(.top, 24)
                 }
             }
             .background(Color("BackgroundPrimary"))
@@ -124,7 +153,9 @@ struct LogsView: View {
         .safeAreaInset(edge: .bottom) {
             Color.clear.frame(height: 0)
         }
-        .background(Color("BackgroundPrimary"))
+                .background(Color("BackgroundPrimary"))
+            }
+        }
         .task {
             if !isInitialLoaded {
                 await initialLoad()
@@ -137,9 +168,11 @@ struct LogsView: View {
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
                 await self.fetchStats()
+                self.isLoadingAnalytics = false
             }
             group.addTask {
                 await self.fetchNext(reset: true)
+                self.isLoadingEvents = false
             }
         }
         isInitialLoaded = true
