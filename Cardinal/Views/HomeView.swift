@@ -175,19 +175,15 @@ struct HomeView: View {
         Group {
             if isDataLoading {
                 // Loading view with CardinalLogo
-                VStack(spacing: 8) {
+                VStack {
                     Spacer()
                     
                     Image("CardinalLogo")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 56, height: 56)
-                        .scaleEffect(isDataLoading ? 1.0 : 0.8)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isDataLoading)
-                    
-                    Text("Loading...")
-                        .font(.custom("MabryPro-BlackItalic", size: 20))
-                        .foregroundColor(Color("TextPrimary"))
+                        .frame(width: 72, height: 72)
+                        .scaleEffect(isDataLoading ? 1.1 : 1.0)
+                        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isDataLoading)
                     
                     Spacer()
                 }
@@ -201,7 +197,7 @@ struct HomeView: View {
                         .font(.system(size: 28, weight: .black, design: .rounded))
                         .foregroundColor(Color("TextPrimary"))
                 VStack(alignment: .leading, spacing: 32) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(fullName.isEmpty ? "" : fullName)
                             .font(.custom("MabryPro-Black", size: 28)) 
                             .foregroundColor(Color("TextPrimary"))
@@ -279,7 +275,6 @@ struct HomeView: View {
                                     .foregroundColor(Color("TextPrimary"))
                                     .underline()
                             }
-                            .padding(.top, 4)
                         }
                         .padding(24)
                         .frame(height: logsContainerHeight)

@@ -51,19 +51,15 @@ struct LogsView: View {
     var body: some View {
         Group {
             if isDataLoading {
-                VStack(spacing: 8) {
+                VStack {
                     Spacer()
                     
                     Image("CardinalLogo")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 56, height: 56)
-                        .scaleEffect(isDataLoading ? 1.0 : 0.8)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isDataLoading)
-                    
-                    Text("Loading...")
-                        .font(.custom("MabryPro-BlackItalic", size: 20))
-                        .foregroundColor(Color("TextPrimary"))
+                        .frame(width: 72, height: 72)
+                        .scaleEffect(isDataLoading ? 1.1 : 1.0)
+                        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isDataLoading)
                     
                     Spacer()
                 }
@@ -71,7 +67,7 @@ struct LogsView: View {
                 .background(Color("BackgroundPrimary"))
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 32) {
                         Text("ACTIVITY LOG")
                                 .font(.system(size: 28, weight: .black, design: .rounded))
                                 .foregroundColor(Color("TextPrimary"))

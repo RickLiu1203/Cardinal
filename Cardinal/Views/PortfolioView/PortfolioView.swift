@@ -254,20 +254,16 @@ struct PortfolioView: View {
         #if !APPCLIP
         Group {
             if isDataLoading {
-                // Loading view with CardinalLogo (same as HomeView)
-                VStack(spacing: 8) {
+                // Loading view with CardinalLogo
+                VStack {
                     Spacer()
                     
                     Image("CardinalLogo")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 56, height: 56)
-                        .scaleEffect(isDataLoading ? 1.0 : 0.8)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isDataLoading)
-                    
-                    Text("Loading...")
-                        .font(.custom("MabryPro-BlackItalic", size: 20))
-                        .foregroundColor(Color("TextPrimary"))
+                        .frame(width: 72, height: 72)
+                        .scaleEffect(isDataLoading ? 1.1 : 1.0)
+                        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isDataLoading)
                     
                     Spacer()
                 }

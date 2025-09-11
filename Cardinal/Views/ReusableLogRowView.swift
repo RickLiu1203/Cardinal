@@ -40,7 +40,7 @@ struct ReusableLogRowView: View {
             let (symbol, tint) = iconData
             Circle()
                 .fill(tint.opacity(0.15))
-                .frame(width: 34, height: 34)
+                .frame(width: 36, height: 36)
                 .overlay {
                     Circle()
                         .stroke(Color.black, lineWidth: 1)
@@ -67,7 +67,7 @@ struct ReusableLogRowView: View {
                 .truncationMode(.tail)
                 Text("\(formattedTime)")
                     .font(.custom("MabryPro-Regular", size: 14))
-                    .foregroundColor(Color("TextPrimary"))
+                    .foregroundColor(Color.textSecondary)
             }
             Spacer(minLength: 0)
         }

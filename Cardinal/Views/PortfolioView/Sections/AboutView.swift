@@ -31,7 +31,7 @@ struct AboutView: View {
                     }
                     if !about.body.isEmpty {
                         Text(.init(about.body))
-                            .font(.custom("MabryPro-Light", size: 18))
+                            .font(.custom("MabryPro-Regular", size: 18))
                             .lineSpacing(8)
                     }
                     

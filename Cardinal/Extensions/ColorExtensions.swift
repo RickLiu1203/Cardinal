@@ -17,4 +17,5 @@ extension Color {
     static let experiencesBackground = Color.experiencesAccent.opacity(0.04)
     static let projectsAccent = Color(red: 1.0, green: 0.82, blue: 0.99)
     static let projectsBackground = Color.projectsAccent.opacity(0.1)
+    static let textSecondary = Color("TextPrimary").opacity(0.5)
 }

@@ -54,12 +54,10 @@ private extension SkillsView {
                 tokenPosition += 1
             }
         }
-        // Add a trailing symbol to separate when looping
-        if let first = skills.first {
+        // Add a trailing symbol to separate when looping back to the beginning
+        if !skills.isEmpty {
             let symbol = symbols[skills.count % symbols.count]
             result.append(.symbol(symbol, tokenPosition))
-            tokenPosition += 1
-            result.append(.skill(first, tokenPosition)) // Leads into first for seamless loop perception
         }
         return result
     }
@@ -75,7 +73,7 @@ private struct SkillsMarquee: View {
     @State private var accumulatedBeforePause: TimeInterval = 0
     @State private var pauseDate: Date? = nil
 
-    private let spacing: CGFloat = 16
+    private let spacing: CGFloat = 20
     private let speedPointsPerSecond: CGFloat = 40 // Adjust for desired speed
 
     var body: some View {
@@ -148,6 +146,7 @@ private struct SkillsMarquee: View {
                 }
             }
         }
+        .padding(.trailing, 20)
     }
 
     private var widthReader: some View {

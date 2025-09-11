@@ -52,8 +52,8 @@ struct ExperiencesView: View {
                                             
                                             
                                             Text(formatPeriod(startDateString: exp.startDateString, endDateString: exp.endDateString))
-                                                .font(.custom("MabryPro-Medium", size: 16))
-                                                .foregroundColor(Color("TextPrimary"))
+                                                .font(.custom("MabryPro-Regular", size: 16))
+                                                .foregroundColor(Color.textSecondary)
                                         }
                                         if let desc = exp.description, !desc.isEmpty {
                                             Text(desc)
@@ -95,9 +95,47 @@ struct ExperiencesView: View {
     }
 
     private func formatPeriod(startDateString: String?, endDateString: String?) -> String {
-        let start = startDateString ?? ""
-        let end = endDateString ?? "Present"
+        let start = parseToMonthYear(startDateString) ?? ""
+        let end = endDateString != nil ? (parseToMonthYear(endDateString) ?? "") : "Present"
         return "\(start) – \(end)"
+    }
+    
+    private func parseToMonthYear(_ dateString: String?) -> String? {
+        guard let dateString = dateString, !dateString.isEmpty else { return nil }
+        let trimmed = dateString.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Output formatter (short month + year)
+        let out = DateFormatter()
+        out.locale = Locale(identifier: "en_US_POSIX")
+        out.dateFormat = "MMM yyyy"
+
+        // Try a set of common input formats we see in storage
+        let patterns = [
+            "d MMMM yyyy 'at' HH:mm:ss 'UTC'XXX", // 8 September 2025 at 20:50:04 UTC-4
+            "d MMMM yyyy",                        // 8 September 2025
+            "MMM d, yyyy",                        // Sep 9, 2024
+            "MMMM d, yyyy",                       // September 9, 2024
+            "yyyy-MM-dd"                          // 2025-09-08
+        ]
+
+        for pattern in patterns {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_US_POSIX")
+            f.dateFormat = pattern
+            if let date = f.date(from: trimmed) {
+                return out.string(from: date)
+            }
+        }
+
+        // If it's already in the desired format, return it as-is
+        let alreadyShort = DateFormatter()
+        alreadyShort.locale = Locale(identifier: "en_US_POSIX")
+        alreadyShort.dateFormat = "MMM yyyy"
+        if alreadyShort.date(from: trimmed) != nil {
+            return trimmed
+        }
+
+        return trimmed
     }
 }
 
