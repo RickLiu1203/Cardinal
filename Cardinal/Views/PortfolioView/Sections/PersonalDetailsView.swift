@@ -31,7 +31,7 @@ struct PersonalDetailsView: View {
                     HStack(spacing: 16) {
                         if !personalDetails.linkedIn.isEmpty {
                             Button(action: {
-                                if let url = URL(string: personalDetails.linkedIn) {
+                                if let url = URL(string: personalDetails.linkedIn.trimmingCharacters(in: .whitespacesAndNewlines)) {
                                     AnalyticsManager.shared.logEvent(action: "open_linkedin", meta: ["url": url.absoluteString])
                                     openURL(url)
                                 }
@@ -44,7 +44,7 @@ struct PersonalDetailsView: View {
                         }
                         if !personalDetails.github.isEmpty {
                             Button(action: {
-                                if let url = URL(string: personalDetails.github) {
+                                if let url = URL(string: personalDetails.github.trimmingCharacters(in: .whitespacesAndNewlines)) {
                                     AnalyticsManager.shared.logEvent(action: "open_github", meta: ["url": url.absoluteString])
                                     openURL(url)
                                 }
@@ -57,7 +57,7 @@ struct PersonalDetailsView: View {
                         }
                         if !personalDetails.website.isEmpty {
                             Button(action: {
-                                if let url = URL(string: personalDetails.website) {
+                                if let url = URL(string: personalDetails.website.trimmingCharacters(in: .whitespacesAndNewlines)) {
                                     AnalyticsManager.shared.logEvent(action: "open_website", meta: ["url": url.absoluteString])
                                     openURL(url)
                                 }
@@ -136,13 +136,13 @@ struct PersonalDetailsView: View {
         // Set URLs
         var urlAddresses: [CNLabeledValue<NSString>] = []
         if !personalDetails.website.isEmpty {
-            urlAddresses.append(CNLabeledValue(label: "Website", value: personalDetails.website as NSString))
+            urlAddresses.append(CNLabeledValue(label: "Website", value: personalDetails.website.trimmingCharacters(in: .whitespacesAndNewlines) as NSString))
         }
         if !personalDetails.linkedIn.isEmpty {
-            urlAddresses.append(CNLabeledValue(label: "LinkedIn", value: personalDetails.linkedIn as NSString))
+            urlAddresses.append(CNLabeledValue(label: "LinkedIn", value: personalDetails.linkedIn.trimmingCharacters(in: .whitespacesAndNewlines) as NSString))
         }
         if !personalDetails.github.isEmpty {
-            urlAddresses.append(CNLabeledValue(label: "GitHub", value: personalDetails.github as NSString))
+            urlAddresses.append(CNLabeledValue(label: "GitHub", value: personalDetails.github.trimmingCharacters(in: .whitespacesAndNewlines) as NSString))
         }
         contact.urlAddresses = urlAddresses
         
