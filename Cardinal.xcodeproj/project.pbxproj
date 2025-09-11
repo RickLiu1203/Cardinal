@@ -63,6 +63,8 @@
 		B8A645552E6F3C0700A55206 /* Exceptions for "Cardinal" folder in "CardinalPortfolioClip" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Config/FirebaseConfig.swift,
+				Extensions/ColorExtensions.swift,
 				Font/FontManager.swift,
 				"Font/MabryPro-Black.ttf",
 				"Font/MabryPro-BlackItalic.ttf",

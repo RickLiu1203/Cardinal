@@ -8,11 +8,6 @@
 import SwiftUI
 import CoreText
 
-extension Color {
-    static let portfolioAccent = Color(red: 1.0, green: 0.76, blue: 0.984)
-    static let portfolioBackground = Color.portfolioAccent.opacity(0.1)
-}
-
 struct ProjectsView: View {
     let projects: [PortfolioView.PresentableProject]
 
@@ -34,9 +29,8 @@ struct ProjectsView: View {
             .padding(.horizontal, 36)
             .padding(.vertical, 64)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.portfolioBackground)
+            .background(Color.projectsBackground)
             }
-            PageDividerView()
         }
     }
 }
@@ -67,7 +61,7 @@ private struct ProjectCard: View {
                             .font(.custom("MabryPro-Bold", size: 14))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color.portfolioAccent)
+                            .background(Color.projectsAccent)
                             .foregroundColor(Color("TextPrimary"))
                             .border(Color("TextPrimary"), width: 1.5)
                             .lineLimit(1)

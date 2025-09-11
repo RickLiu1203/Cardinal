@@ -7,11 +7,6 @@
 
 import SwiftUI
 
-extension Color {
-    static let experiencesAccent = Color(red: 0.486, green: 0.918, blue: 0.769)
-    static let experiencesBackground = Color.experiencesAccent.opacity(0.05)
-}
-
 struct ExperiencesView: View {
     let experiences: [PortfolioView.PresentableExperience]
 
@@ -33,7 +28,7 @@ struct ExperiencesView: View {
                             .offset(x: 7) // Center on the circles (16px circle / 2 - 1px line / 2)
                         
                         // Experience entries with circles
-                        VStack(spacing: 32) {
+                        VStack(spacing: 40) {
                             ForEach(Array(experiences.enumerated()), id: \.element.id) { index, exp in
                                 HStack(alignment: .top, spacing: 16) {
                                     // Timeline circle
@@ -48,12 +43,13 @@ struct ExperiencesView: View {
                                     
                                     VStack(alignment: .leading, spacing: 32) {
                                         VStack(alignment: .leading, spacing: 12) {
+                                            Text(exp.company)
+                                                .font(.custom("MabryPro-Black", size: 20))
+
                                             Text(exp.role)
-                                                .font(.system(size: 20, weight: .black, design: .rounded))
+                                                .font(.custom("MabryPro-Medium", size: 18))
                                                 .fixedSize(horizontal: false, vertical: true)
                                             
-                                            Text(exp.company)
-                                                .font(.custom("MabryPro-Medium", size: 18))
                                             
                                             Text(formatPeriod(startDateString: exp.startDateString, endDateString: exp.endDateString))
                                                 .font(.custom("MabryPro-Medium", size: 16))

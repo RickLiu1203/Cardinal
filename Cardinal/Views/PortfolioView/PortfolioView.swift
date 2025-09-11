@@ -147,8 +147,9 @@ struct PortfolioView: View {
         return formViewModel.projects.map { p in
             return .init(id: p.id, title: p.title, description: p.description, tools: p.tools, link: p.link)
         }
-        #endif
+        #else
         return []
+        #endif
     }
     
     private var effectiveSectionOrder: [SectionType] {
@@ -253,6 +254,7 @@ struct PortfolioView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color("BackgroundPrimary"))
+            .ignoresSafeArea(edges: .bottom)
             #if !APPCLIP
             .onAppear {
                 if let uid = Auth.auth().currentUser?.uid {
@@ -270,6 +272,7 @@ struct PortfolioView: View {
             }
             #endif
         }
+        .background(Color("BackgroundPrimary").ignoresSafeArea())
         .sheet(isPresented: $showingSafariView) {
             if let url = safariURL {
                 SafariView(url: url)

@@ -17,7 +17,7 @@ final class AnalyticsManager: ObservableObject {
     // Owner of the portfolio being viewed (user id). Set by App Clip when it parses the URL.
     @Published var ownerId: String? = nil
 
-    private let baseURL = URL(string: "https://us-central1-cardinalapp-4279c.cloudfunctions.net")!
+    private let baseURL = FirebaseConfig.shared.functionsBaseURL
     private let deviceIdKey = "clipDeviceId"
     private let visitorNameKey = "clipVisitorName"
     private init() {}

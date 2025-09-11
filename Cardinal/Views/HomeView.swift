@@ -172,7 +172,7 @@ struct HomeView: View {
                             .foregroundColor(Color("TextPrimary"))
                         if !(formViewModel.personalDetails?.subtitle ?? "").isEmpty {
                             Text(formViewModel.personalDetails?.subtitle ?? "")
-                                .font(.custom("MabryPro-Italic", size: 20))
+                                .font(.custom("MabryPro-Italic", size: 18))
                                 .foregroundColor(Color("TextPrimary"))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -181,18 +181,18 @@ struct HomeView: View {
 
                     // Metrics inside card
                     HStack(spacing: 0) {
-                        metricView(icon: "chevron.left.slash.chevron.right", value: skillsCount, label: "SKILLS")
+                        metricView(icon: "lightbulb", value: skillsCount, label: "SKILLS")
                         Spacer()
-                        metricView(icon: "briefcase.fill", value: experiencesCount, label: "EXPERIENCES")
+                        metricView(icon: "briefcase", value: experiencesCount, label: "EXPERIENCES")
                         Spacer()
-                        metricView(icon: "folder.fill", value: projectsCount, label: "PROJECTS")
+                        metricView(icon: "folder", value: projectsCount, label: "PROJECTS")
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .padding(32)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.homeAccent)
+                        .fill(Color.homeCard)
                         .shadow(color: .black, radius: 0, x: 4, y: 4)
                 )
                 .overlay(
@@ -200,9 +200,9 @@ struct HomeView: View {
                         .fill(
                             LinearGradient(
                                 gradient: Gradient(stops: [
-                                    .init(color: Color.clear, location: 0.0),
-                                    .init(color: Color.white.opacity(0.5), location: 0.6),
-                                    .init(color: Color.clear, location: 1.0)
+                                    .init(color: Color.clear, location: 0.45),
+                                    .init(color: Color.white.opacity(0.6), location: 0.65),
+                                    .init(color: Color.clear, location: 0.85)
                                 ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -332,7 +332,7 @@ struct HomeView: View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .foregroundColor(Color.homeAccent)
+                    .foregroundColor(Color.black)
                 Text("\(value)")
                     .font(.custom("MabryPro-BlackItalic", size: 20))
                     .foregroundColor(Color.black)

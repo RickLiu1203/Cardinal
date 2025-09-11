@@ -24,7 +24,7 @@ struct DetailsFormView: View {
             switch kind {
             case .section(let type): return "section-\(type.rawValue)"
             case .editExperience(let exp): return "exp-\(exp.id)"
-            case .editAbout(let about): return "about"
+            case .editAbout(_): return "about"
             case .editProject(let project): return "prj-\(project.id)"
             }
         }

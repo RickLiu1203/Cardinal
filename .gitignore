@@ -11,6 +11,9 @@ firebase-debug.*.log*
 .firebase/
 
 # Firebase config
+# iOS Firebase configuration files (contain API keys and project IDs)
+Cardinal/GoogleService-Info.plist
+CardinalPortfolioClip/GoogleService-Info.plist
 
 # Uncomment this if you'd like others to create their own Firebase project.
 # For a team working on the same Firebase project(s), it is recommended to leave

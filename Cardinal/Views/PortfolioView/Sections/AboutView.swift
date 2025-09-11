@@ -11,6 +11,7 @@ struct AboutView: View {
     let about: PortfolioView.PresentableAbout?
     let resume: PortfolioView.PresentableResume?
     let onViewTapped: ((URL) -> Void)?
+    @State private var isResumeButtonPressed = false
 
     var body: some View {
         if let about = about {
@@ -35,32 +36,43 @@ struct AboutView: View {
                     }
                     
                     if let resume = resume, let onViewTapped = onViewTapped {
-                        Button(action: {
-                            if let url = URL(string: resume.downloadURL) {
-                                onViewTapped(url)
+                        Text("check out my resume!")
+                            .font(.custom("MabryPro-Bold", size: 20))
+                            .padding(.vertical, 16)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .shadow(color: isResumeButtonPressed ? .clear : .black, radius: 0, x: isResumeButtonPressed ? 0 : 4, y: isResumeButtonPressed ? 0 : 4)
+                                    .foregroundColor(Color.aboutAccent)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(.black, lineWidth: 2)
+                            )
+                            .offset(x: isResumeButtonPressed ? 4 : 0, y: isResumeButtonPressed ? 4 : 0)
+                            .animation(.easeInOut(duration: 0.05), value: isResumeButtonPressed)
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.05)) {
+                                    isResumeButtonPressed = true
+                                }
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    withAnimation(.easeInOut(duration: 0.05)) {
+                                        isResumeButtonPressed = false
+                                    }
+                                    
+                                    if let url = URL(string: resume.downloadURL) {
+                                        onViewTapped(url)
+                                    }
+                                }
                             }
-                        }){
-                            Text("check out my resume!")
-                                .font(.custom("MabryPro-Bold", size: 20))
-                        }
-                        .padding(.vertical, 16)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .shadow(color: .black, radius: 0, x: 4, y: 4)
-                                .foregroundColor(Color("BackgroundPrimary"))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(.black, lineWidth: 2)
-                        )
                     }
                 }
                 .padding(.horizontal, 36)
                 .padding(.vertical, 64)
                 PageDividerView()
             }
-            .background(Color("BackgroundPrimary"))
+            .background(Color.aboutAccent.opacity(0.1))
         }
     }
 }

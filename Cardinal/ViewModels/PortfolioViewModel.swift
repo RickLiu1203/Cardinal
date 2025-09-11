@@ -53,10 +53,11 @@ final class PortfolioViewModel: ObservableObject {
     // Convenience for injecting a prebuilt payload (e.g., from NSUserActivity userInfo)
     func load(from payload: [String: String]) {
         Task.detached { [weak self] in
+            guard let self = self else { return }
             let details = PortfolioPayloadParser.from(payload: payload)
             await MainActor.run {
-                self?.personalDetails = details
-                self?.isLoading = false
+                self.personalDetails = details
+                self.isLoading = false
             }
         }
     }

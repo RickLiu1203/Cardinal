@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>240965156537-374pplam75r1cp971kvt6eo3fl49gn0r.apps.googleusercontent.com</string>
+	<string>YOUR_CLIENT_ID.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.240965156537-374pplam75r1cp971kvt6eo3fl49gn0r</string>
+	<string>com.googleusercontent.apps.YOUR_CLIENT_ID</string>
 	<key>API_KEY</key>
-	<string>AIzaSyBtV66kd1RMLsdGCEVFD8e2KMZtGurGMWk</string>
+	<string>YOUR_API_KEY</string>
 	<key>GCM_SENDER_ID</key>
-	<string>240965156537</string>
+	<string>YOUR_SENDER_ID</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.rzliu.Cardinal</string>
 	<key>PROJECT_ID</key>
-	<string>cardinalapp-4279c</string>
+	<string>YOUR_PROJECT_ID</string>
 	<key>STORAGE_BUCKET</key>
-	<string>cardinalapp-4279c.firebasestorage.app</string>
+	<string>YOUR_PROJECT_ID.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:240965156537:ios:85381c50614d6290a36568</string>
+	<string>1:YOUR_SENDER_ID:ios:YOUR_APP_ID</string>
 </dict>
 </plist>

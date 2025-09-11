@@ -35,6 +35,12 @@ struct RootTabView: View {
                 }
                 .opacity(selectedTab == 3 ? 1 : 0)
                 .allowsHitTesting(selectedTab == 3)
+
+                NavigationStack {
+                    SettingsView()
+                }
+                .opacity(selectedTab == 4 ? 1 : 0)
+                .allowsHitTesting(selectedTab == 4)
             }
             .animation(.none, value: selectedTab)
             
@@ -66,6 +72,13 @@ struct RootTabView: View {
                     title: "Portfolio",
                     isSelected: selectedTab == 3,
                     action: { selectedTab = 3 }
+                )
+
+                CustomTabButton(
+                    icon: "gearshape.fill",
+                    title: "Settings",
+                    isSelected: selectedTab == 4,
+                    action: { selectedTab = 4 }
                 )
             }
             .padding(.horizontal, 8)

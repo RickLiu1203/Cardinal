@@ -8,12 +8,18 @@ struct LogsView: View {
     @State private var isLoading: Bool = false
     @State private var isInitialLoaded: Bool = false
     @State private var refreshTask: Task<Void, Never>?
+    @State private var stats: AnalyticsStats? = nil
+    @State private var isLoadingStats: Bool = false
 
     private let pageSize: Int = 30
     private let loadMoreThreshold: Int = 5
 
     private var uniqueVisitorsCount: Int {
-        Set(events.map { $0.visitorName }).count
+        stats?.uniqueVisitors ?? 0
+    }
+    
+    private var totalActionsCount: Int {
+        stats?.totalActions ?? 0
     }
 
     // Cached date formatters
@@ -35,7 +41,8 @@ struct LogsView: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 24) {
                 Text("ACTIVITY LOG")
                         .font(.system(size: 28, weight: .black, design: .rounded))
                         .foregroundColor(Color("TextPrimary"))
@@ -50,7 +57,7 @@ struct LogsView: View {
                             .fixedSize(horizontal: true, vertical: false)
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("\(events.count)")
+                        Text("\(totalActionsCount)")
                             .font(.custom("MabryPro-Black", size: 28))
                             .foregroundColor(Color("TextPrimary"))
                         Text("TOTAL INTERACTIONS")
@@ -62,6 +69,7 @@ struct LogsView: View {
             Rectangle()
                 .fill(Color.black)
                 .frame(height: 2)
+            }
             ScrollView {
                 if events.isEmpty && isInitialLoaded {
                     VStack {
@@ -100,14 +108,16 @@ struct LogsView: View {
                         }
                     }
                     .padding(.horizontal, 2)
+                    .padding(.top, 16)
                 }
             }
+            .background(Color("BackgroundPrimary"))
             .refreshable {
                 await refresh()
             }
         }
-        .padding(16)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .padding(.top, 32)
         .safeAreaInset(edge: .top) {
             Color.clear.frame(height: 0)
         }
@@ -123,7 +133,15 @@ struct LogsView: View {
     }
 
     private func initialLoad() async {
-        await fetchNext(reset: true)
+        // Fetch stats and initial events concurrently
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                await self.fetchStats()
+            }
+            group.addTask {
+                await self.fetchNext(reset: true)
+            }
+        }
         isInitialLoaded = true
     }
 
@@ -139,28 +157,59 @@ struct LogsView: View {
         Task { await fetchNext(reset: false) }
     }
 
+    private func fetchStats() async {
+        if isLoadingStats { return }
+        isLoadingStats = true
+        defer { isLoadingStats = false }
+        
+        do {
+            // Use the existing fetchAnalytics method to get stats
+            let url = URL(string: "https://us-central1-cardinalapp-4279c.cloudfunctions.net/getAnalytics")!
+            var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            comps?.queryItems = [URLQueryItem(name: "ownerId", value: ownerId)]
+            guard let finalUrl = comps?.url else { return }
+            
+            let (data, response) = try await URLSession.shared.data(from: finalUrl)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return }
+            let decoded = try JSONDecoder().decode(GetAnalyticsResponse.self, from: data)
+            
+            await MainActor.run {
+                self.stats = decoded.stats
+            }
+        } catch {
+            // Silently fail for now
+            print("Failed to fetch stats: \(error)")
+        }
+    }
+    
     private func refresh() async {
         // Cancel any existing refresh task
         refreshTask?.cancel()
         
         refreshTask = Task {
-            do {
-                // Always start from beginning for refresh
-                let page = try await AnalyticsManager.shared.fetchAnalyticsPage(ownerId: ownerId, pageSize: pageSize, startAfterId: nil)
-                
-                guard !Task.isCancelled else { return }
-                
-                await MainActor.run {
-                    events = page.events
-                    nextCursor = page.nextCursor
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask {
+                        await self.fetchStats()
+                    }
+                    group.addTask {
+                        try? await self.refreshEvents()
+                    }
                 }
-            } catch {
-                guard !Task.isCancelled else { return }
-                print("Refresh failed: \(error)")
-            }
         }
         
         await refreshTask?.value
+    }
+    
+    private func refreshEvents() async throws {
+        // Always start from beginning for refresh
+        let page = try await AnalyticsManager.shared.fetchAnalyticsPage(ownerId: ownerId, pageSize: pageSize, startAfterId: nil)
+        
+        guard !Task.isCancelled else { return }
+        
+        await MainActor.run {
+            events = page.events
+            nextCursor = page.nextCursor
+        }
     }
 
     private func fetchNext(reset: Bool) async {
