@@ -32,7 +32,13 @@ final class AnalyticsManager: ObservableObject {
     }
 
     var visitorName: String {
-        (UserDefaults.standard.string(forKey: visitorNameKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Use portfolio-specific visitor name if ownerId is available
+        if let ownerId = ownerId, !ownerId.isEmpty {
+            let portfolioSpecificKey = "clipVisitorName_\(ownerId)"
+            return (UserDefaults.standard.string(forKey: portfolioSpecificKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        // Fallback to global key for backward compatibility
+        return (UserDefaults.standard.string(forKey: visitorNameKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func logEvent(action: String, meta: [String: String]? = nil) {

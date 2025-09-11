@@ -9,93 +9,124 @@ import SwiftUI
 
 struct LandingModalView: View {
     @Binding var isPresented: Bool
+    let ownerId: String
     var onSubmit: (() -> Void)? = nil
-    @State private var tempName: String = UserDefaults.standard.string(forKey: "clipVisitorName") ?? ""
+    @State private var tempName: String = ""
     @FocusState private var nameFocused: Bool
+    @State private var isButtonPressed: Bool = false
+    
+    init(isPresented: Binding<Bool>, ownerId: String, onSubmit: (() -> Void)? = nil) {
+        self._isPresented = isPresented
+        self.ownerId = ownerId
+        self.onSubmit = onSubmit
+        // Initialize tempName with portfolio-specific stored name
+        let portfolioSpecificKey = "clipVisitorName_\(ownerId)"
+        self._tempName = State(initialValue: UserDefaults.standard.string(forKey: portfolioSpecificKey) ?? "")
+    }
 
     var body: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 12) {
-                Text("Welcome 👋")
-                    .font(.system(size: 22, weight: .black, design: .rounded))
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("WELCOME TO MY PORTFOLIO")
+                    .font(.custom("MabryPro-Black", size: 28))
                     .foregroundColor(Color("TextPrimary"))
 
-                Text("Enter your name to mark your visit! (Optional)")
-                    .font(.system(size: 16))
+                Text("Optionally enter your name to mark your visit!")
+                    .font(.custom("MabryPro-Regular", size: 18))
                     .foregroundColor(Color("TextPrimary"))
                     .multilineTextAlignment(.leading)
             }
 
-            HStack(spacing: 12) {
-                TextField("Your Name (Leave Blank to Stay Anonymous)", text: $tempName)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 16))
-                    .foregroundColor(Color("TextPrimary"))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background{
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color("BackgroundPrimary"))
+            VStack(alignment: .leading, spacing: 20) {
+                ZStack(alignment: .leading) {
+                    if tempName.isEmpty {
+                        Text("Your Name (Optional)")
+                            .font(.custom("MabryPro-Italic", size: 18))
+                            .foregroundColor(Color("TextPrimary"))
+                            .opacity(0.6)
+                            .padding(.horizontal, 16)
+                            .frame(height: 48)
                     }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.black, lineWidth: 1.5)
-                    )
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.words)
-                    .textContentType(.name)
-                    .submitLabel(.go)
-                    .focused($nameFocused)
-                    .onSubmit {
-                        submitName()
-                    }
-
-                Button {
-                    submitName()
-                } label: {
-                    Text("GO")
-                        .font(.system(size: 16, weight: .bold))
+                    TextField("", text: $tempName)
+                        .textFieldStyle(.plain)
+                        .font(.custom("MabryPro-Italic", size: 18))
                         .foregroundColor(Color("TextPrimary"))
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .frame(height: 48)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.words)
+                        .textContentType(.name)
+                        .submitLabel(.go)
+                        .focused($nameFocused)
+                        .onSubmit {
+                            submitName()
+                        }
                 }
                 .background{
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color("BackgroundPrimary"))
-                        .shadow(color: .black, radius: 0, x: 2, y: 2)
                 }
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.black, lineWidth: 1.5)
                 )
-                .keyboardShortcut(.return, modifiers: [])
+
+                Text("GO")
+                    .font(.custom("MabryPro-BlackItalic", size: 18))
+                    .foregroundColor(Color("TextPrimary"))
+                    .textCase(.uppercase)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background{
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.homeAccent)
+                            .shadow(color: isButtonPressed ? .clear : .black, radius: 0, x: isButtonPressed ? 0 : 4, y: isButtonPressed ? 0 : 4)
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.black, lineWidth: 1.5)
+                    )
+                    .offset(x: isButtonPressed ? 4 : 0, y: isButtonPressed ? 4 : 0)
+                    .animation(.easeInOut(duration: 0.1), value: isButtonPressed)
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.05)) {
+                            isButtonPressed = true
+                        }
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.easeInOut(duration: 0.05)) {
+                                isButtonPressed = false
+                            }
+                            
+                            submitName()
+                        }
+                    }
             }
         }
-        .padding(20)
-        .background{
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color("BackgroundPrimary"))
-                .shadow(color: .black, radius: 0, x: 4, y: 4)
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.black, lineWidth: 2)
-        )
         .padding(.horizontal, 16)
+        .onTapGesture {
+            hideKeyboard()
+        }
     }
     
     private func submitName() {
         // 1) Ask keyboard to resign
         nameFocused = false
         let trimmedName = tempName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let portfolioSpecificKey = "clipVisitorName_\(ownerId)"
+        
         if !trimmedName.isEmpty {
-            UserDefaults.standard.set(trimmedName, forKey: "clipVisitorName")
+            UserDefaults.standard.set(trimmedName, forKey: portfolioSpecificKey)
         }
         // 2) Defer dismiss until next runloop to avoid RTI snapshot warnings
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             isPresented = false
             onSubmit?()
         }
+    }
+    
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 

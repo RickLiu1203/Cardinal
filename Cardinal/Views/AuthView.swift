@@ -15,6 +15,7 @@ struct AuthView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
     @State private var isSignUpMode: Bool = false
+    @State private var isButtonPressed: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -83,33 +84,43 @@ struct AuthView: View {
                             Text(errorMessage)
                                 .foregroundColor(.red)
                                 .multilineTextAlignment(.leading)
-                                .font(.custom("MabryPro-Regular", size: 14))
+                                .font(.custom("MabryPro-Medium", size: 14))
                         }
                     }
 
-                    Button {
-                        signIn()
-                    } label: {
-                        HStack {
-                            Text("LOG IN")
-                                .font(.custom("MabryPro-BlackItalic", size: 18))
-                                .foregroundColor(Color("TextPrimary"))
-                                .textCase(.uppercase)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 14)
+                    HStack {
+                        Text("LOG IN")
+                            .font(.custom("MabryPro-BlackItalic", size: 18))
+                            .foregroundColor(Color("TextPrimary"))
+                            .textCase(.uppercase)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
                     .background{
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.homeAccent)
-                            .shadow(color: .black, radius: 0, x: 4, y: 4)
+                            .shadow(color: isButtonPressed ? .clear : .black, radius: 0, x: isButtonPressed ? 0 : 4, y: isButtonPressed ? 0 : 4)
                     }
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.black, lineWidth: 1.5)
                     )
+                    .offset(x: isButtonPressed ? 4 : 0, y: isButtonPressed ? 4 : 0)
+                    .animation(.easeInOut(duration: 0.1), value: isButtonPressed)
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.05)) {
+                            isButtonPressed = true
+                        }
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation(.easeInOut(duration: 0.05)) {
+                                isButtonPressed = false
+                            }
+                            
+                            signIn()
+                        }
+                    }
 
                     // NOTE: Temporarily disabling Sign Up access
                     // Button {

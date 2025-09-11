@@ -26,7 +26,7 @@ struct CardinalPortfolioClipApp: App {
                     
                     VStack {
                         Spacer()
-                        LandingModalView(isPresented: $showLandingModal) {
+                        LandingModalView(isPresented: $showLandingModal, ownerId: AnalyticsManager.shared.ownerId ?? vm.lastOwnerId ?? "") {
                             // Dismiss modal and log a visit once
                             showLandingModal = false
                             if !didLogOpen, let ownerId = AnalyticsManager.shared.ownerId ?? vm.lastOwnerId, !ownerId.isEmpty {
@@ -42,8 +42,11 @@ struct CardinalPortfolioClipApp: App {
             }
             .animation(.none, value: showLandingModal)
             .onAppear {
-                // Show modal only if we don't have a cached visitor name
-                showLandingModal = AnalyticsManager.shared.visitorName.isEmpty
+                // Initial setup - check if we already have an ownerId from a previous URL handling
+                if let existingOwnerId = AnalyticsManager.shared.ownerId, !existingOwnerId.isEmpty {
+                    showLandingModal = AnalyticsManager.shared.visitorName.isEmpty
+                }
+                // Otherwise, wait for URL handling to set the modal state
             }
             .onOpenURL { url in
                 handleOpenURL(url)
@@ -129,9 +132,25 @@ struct CardinalPortfolioClipApp: App {
         vm.apply(url: url)
         if let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?
             .queryItems?.first(where: { $0.name == "id" })?.value, !ownerId.isEmpty {
+            
+            // Reset tracking state when switching portfolios
+            let isNewPortfolio = AnalyticsManager.shared.ownerId != ownerId
+            if isNewPortfolio {
+                didLogOpen = false
+            }
+            
             AnalyticsManager.shared.ownerId = ownerId
-            // If we already have a name, log immediately; otherwise, wait for modal submit
-            if !showLandingModal, !didLogOpen {
+            
+            // Now that ownerId is set, check if we should show the modal for this specific portfolio
+            let shouldShowModal = AnalyticsManager.shared.visitorName.isEmpty
+            
+            // Update modal state if needed
+            if showLandingModal != shouldShowModal {
+                showLandingModal = shouldShowModal
+            }
+            
+            // If we already have a name for this portfolio, log immediately; otherwise, wait for modal submit
+            if !shouldShowModal && !didLogOpen {
                 AnalyticsManager.shared.logEvent(action: "page_view")
                 didLogOpen = true
             }
