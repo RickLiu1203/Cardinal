@@ -12,14 +12,33 @@ struct SettingsView: View {
     @EnvironmentObject var formViewModel: FormViewModel
     @State private var errorMessage: String?
     @State private var isSignOutButtonPressed = false
+    @State private var tapCount = 0
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Title
+                // Title (tap 7 times to reset App Clip data)
                 Text("SETTINGS")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(Color("TextPrimary"))
+                    .onTapGesture {
+                        tapCount += 1
+                        if tapCount >= 7 {
+                            // Reset App Clip data after 7 taps on settings header
+                            print("🧹 DEBUG: 7 taps on SETTINGS - clearing App Clip device ID and data")
+                            // Clear analytics data (device ID, visitor names, etc.)
+                            AnalyticsManager.shared.clearAllStoredData()
+                            tapCount = 0 // Reset counter
+                        }
+                    }
+                
+                // Show tap count when getting close to reset (debug info)
+                if tapCount > 4 {
+                    Text("App Clip Reset: \(7 - tapCount) more taps")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .opacity(0.7)
+                }
 
                 // Sign Out button
                 HStack(spacing: 8) {

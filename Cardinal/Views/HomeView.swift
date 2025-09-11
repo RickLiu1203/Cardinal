@@ -199,7 +199,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 32) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(fullName.isEmpty ? "" : fullName)
-                            .font(.custom("MabryPro-Black", size: 28)) 
+                            .font(.custom("MabryPro-Black", size: 24)) 
                             .foregroundColor(Color("TextPrimary"))
                             .kerning(1)
                         if !(formViewModel.personalDetails?.subtitle ?? "").isEmpty {

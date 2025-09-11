@@ -1,7 +1,9 @@
 const {setGlobalOptions} = require("firebase-functions");
 const {onRequest} = require("firebase-functions/v2/https");
+const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const cors = require("cors")({origin: true});
+const apn = require("node-apn");
 
 admin.initializeApp();
 setGlobalOptions({maxInstances: 10});
@@ -373,6 +375,307 @@ exports.getAnalyticsPage = onRequest(async (req, res) => {
       });
     } catch (error) {
       console.error("getAnalyticsPage error:", error);
+      return res.status(500).json({error: "internal server error"});
+    }
+  });
+});
+
+// Schedules a push (server-side delay) to an APNs device token
+// after N seconds (App Clip use)
+
+// Production APNs Secrets
+const APNS_TEAM_ID = defineSecret("APNS_TEAM_ID");
+const APNS_KEY_ID = defineSecret("APNS_KEY_ID");
+const APNS_P8 = defineSecret("APNS_P8");
+
+// Development APNs Secrets
+const APNS_TEAM_ID_DEV = defineSecret("APNS_TEAM_ID_DEV");
+const APNS_KEY_ID_DEV = defineSecret("APNS_KEY_ID_DEV");
+const APNS_P8_DEV = defineSecret("APNS_P8_DEV");
+
+// Development/Sandbox APNs Function
+exports.scheduleClipPushDev = onRequest({
+  secrets: [APNS_TEAM_ID_DEV, APNS_KEY_ID_DEV, APNS_P8_DEV],
+}, async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      if (req.method !== "POST") {
+        return res.status(405).json({error: "method not allowed"});
+      }
+      console.log("📥 DEV: Received request body:",
+          JSON.stringify(req.body, null, 2));
+      const {
+        token,
+        seconds,
+        title,
+        body,
+        bundleId,
+      } = req.body || {};
+
+      if (!token || !seconds || !bundleId) {
+        return res.status(400).json({
+          error: "missing token, seconds, or bundleId",
+        });
+      }
+
+      // Read APNs development credentials
+      console.log("📱 DEV: Reading development APNs credentials...");
+      const teamId = APNS_TEAM_ID_DEV.value();
+      const keyId = APNS_KEY_ID_DEV.value();
+      const p8 = APNS_P8_DEV.value();
+      console.log("📱 DEV: Development APNs credentials loaded -",
+          `teamId: ${teamId ? "present" : "missing"},`,
+          `keyId: ${keyId ? "present" : "missing"},`,
+          `p8: ${p8 ? "present" : "missing"}`);
+
+      if (!teamId || !keyId || !p8) {
+        console.error("📱 DEV: Missing development APNs credentials");
+        return res.status(500).json({
+          error: "missing development APNs credentials",
+        });
+      }
+
+      console.log("📱 DEV: Decoding development P8 key...");
+      const p8Key = Buffer.from(p8, "base64").toString("utf8");
+      console.log(`📱 DEV: P8 key decoded, length: ${p8Key.length} chars`);
+
+      // Configure APNs provider for SANDBOX
+      console.log("📱 DEV: Creating sandbox APNs provider...");
+      const apnProvider = new apn.Provider({
+        token: {
+          key: p8Key,
+          keyId: keyId,
+          teamId: teamId,
+        },
+        production: false, // Always sandbox for dev function
+      });
+
+      // Create notification
+      const notification = new apn.Notification();
+      const alertTitle = title || "Thanks for checking my work out!";
+      const alertBody = body || "Don't forget to add my email or LinkedIn!";
+
+      // Add unique identifier to prevent iOS deduplication
+      // Generate proper UUID format for APNs notification ID
+      const uniqueId = require("crypto").randomUUID();
+      console.log("📱 DEV: Creating unique notification UUID:", uniqueId);
+
+      console.log("📱 DEV: Setting notification content:",
+          `title="${alertTitle}", body="${alertBody}"`);
+      notification.alert = {
+        title: alertTitle,
+        body: alertBody,
+      };
+      notification.sound = "default";
+      notification.topic = bundleId;
+      notification.id = uniqueId; // Unique notification ID
+      notification.payload = {
+        notificationId: uniqueId,
+        timestamp: Date.now(),
+      }; // Prevent duplicate
+
+      // Wait before sending
+      const delayMs = Number(seconds) * 1000;
+      console.log(`📱 DEV: Waiting ${delayMs}ms before sending...`);
+      await new Promise((r) => setTimeout(r, delayMs));
+
+      // Send notification
+      console.log("📱 DEV: Sending push notification to sandbox...");
+      const result = await apnProvider.send(notification, token);
+      console.log("📱 DEV: Sandbox APNs response:",
+          JSON.stringify(result, null, 2));
+
+      apnProvider.shutdown();
+
+      if (result.sent && result.sent.length > 0) {
+        console.log("📱 DEV: Push notification sent successfully!");
+
+        // Log simple analytics event for notification
+        try {
+          const {ownerId, deviceId, visitorName} = req.body || {};
+          if (ownerId && deviceId) {
+            console.log("📊 DEV: Logging notification_sent event");
+
+            // Simple HTTP call to existing logClipEvent function
+            const logUrl = "https://us-central1-cardinalapp-4279c.cloudfunctions.net/logClipEvent";
+            const logBody = {
+              ownerId: ownerId,
+              deviceId: deviceId,
+              visitorName: visitorName || "anonymous",
+              action: "notification_sent",
+              meta: {environment: "sandbox"},
+            };
+
+            fetch(logUrl, {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify(logBody),
+            }).catch((err) => console.error("📊 DEV: Log request failed:", err));
+          }
+        } catch (logError) {
+          console.error("📊 DEV: Failed to log notification event:", logError);
+        }
+
+        return res.json({
+          ok: true,
+          environment: "sandbox",
+          sent: result.sent.length,
+          failed: result.failed.length,
+        });
+      } else {
+        console.error("📱 DEV: Push notification failed:", result.failed[0]);
+        return res.status(500).json({
+          error: "push notification failed",
+          environment: "sandbox",
+          details: result.failed[0],
+        });
+      }
+    } catch (error) {
+      console.error("📱 DEV: Error in scheduleClipPushDev:", error);
+      return res.status(500).json({error: "internal server error"});
+    }
+  });
+});
+
+// Production APNs Function
+exports.scheduleClipPush = onRequest({
+  secrets: [APNS_TEAM_ID, APNS_KEY_ID, APNS_P8]}, async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      if (req.method !== "POST") {
+        return res.status(405).json({error: "method not allowed"});
+      }
+      console.log("📥 PROD: Received request body:",
+          JSON.stringify(req.body, null, 2));
+      const {
+        token,
+        seconds,
+        title,
+        body,
+        bundleId,
+      } = req.body || {};
+      if (!token || !seconds || !bundleId) {
+        return res.status(400).json({
+          error: "missing token, seconds, or bundleId",
+        });
+      }
+
+      // Read production APNs credentials
+      console.log("🏭 PROD: Reading production APNs credentials...");
+      const teamId = APNS_TEAM_ID.value();
+      const keyId = APNS_KEY_ID.value();
+      const p8 = APNS_P8.value();
+      console.log("🏭 PROD: Production APNs credentials loaded -",
+          `teamId: ${teamId ? "present" : "missing"},`,
+          `keyId: ${keyId ? "present" : "missing"},`,
+          `p8: ${p8 ? "present" : "missing"}`);
+      if (!teamId || !keyId || !p8) {
+        console.error("🏭 PROD: Missing production APNs credentials");
+        return res.status(500).json({
+          error: "missing production APNs credentials",
+        });
+      }
+
+      console.log("🏭 PROD: Decoding production P8 key...");
+      const p8Key = Buffer.from(p8, "base64").toString("utf8");
+      console.log(`🏭 PROD: P8 key decoded, length: ${p8Key.length} chars`);
+
+      // Configure APNs provider for PRODUCTION
+      console.log("🏭 PROD: Creating production APNs provider...");
+      const apnProvider = new apn.Provider({
+        token: {
+          key: p8Key,
+          keyId: keyId,
+          teamId: teamId,
+        },
+        production: true, // Always production for prod function
+      });
+
+      // Create notification
+      console.log("🏭 PROD: Creating APNs notification object...");
+      const notification = new apn.Notification();
+
+      const alertTitle = title || "Thanks for checking my work out!";
+      const alertBody = body || "Don't forget to add my email or LinkedIn!";
+
+      // Add unique identifier to prevent iOS deduplication
+      // Generate proper UUID format for APNs notification ID
+      const uniqueId = require("crypto").randomUUID();
+      console.log("🏭 PROD: Creating unique notification UUID:", uniqueId);
+
+      console.log("🏭 PROD: Setting notification content:",
+          `title="${alertTitle}", body="${alertBody}"`);
+      notification.alert = {
+        title: alertTitle,
+        body: alertBody,
+      };
+      notification.sound = "default";
+      notification.topic = bundleId;
+      notification.id = uniqueId; // Unique notification ID
+      notification.payload = {
+        notificationId: uniqueId,
+        timestamp: Date.now(),
+      }; // Prevent duplicate
+
+      // Wait before sending notification
+      const delayMs = Number(seconds) * 1000;
+      console.log(`🏭 PROD: Waiting ${delayMs}ms before sending...`);
+      await new Promise((r) => setTimeout(r, delayMs));
+
+      // Send notification to production
+      console.log("🏭 PROD: Sending push notification to production...");
+      const result = await apnProvider.send(notification, token);
+      console.log("🏭 PROD: Production APNs response:",
+          JSON.stringify(result, null, 2));
+
+      apnProvider.shutdown();
+
+      if (result.sent && result.sent.length > 0) {
+        console.log("🏭 PROD: Push notification sent successfully!");
+
+        // Log simple analytics event for notification
+        try {
+          const {ownerId, deviceId, visitorName} = req.body || {};
+          if (ownerId && deviceId) {
+            console.log("📊 PROD: Logging notification_sent event");
+
+            // Simple HTTP call to existing logClipEvent function
+            const logUrl = "https://us-central1-cardinalapp-4279c.cloudfunctions.net/logClipEvent";
+            const logBody = {
+              ownerId: ownerId,
+              deviceId: deviceId,
+              visitorName: visitorName || "anonymous",
+              action: "notification_sent",
+              meta: {environment: "production"},
+            };
+
+            fetch(logUrl, {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify(logBody),
+            }).catch((err) =>
+              console.error("📊 PROD: Log request failed:", err));
+          }
+        } catch (logError) {
+          console.error("📊 PROD: Failed to log notification event:", logError);
+        }
+
+        return res.json({
+          ok: true,
+          environment: "production",
+          sent: result.sent.length,
+          failed: result.failed.length,
+        });
+      } else {
+        console.error("🏭 PROD: Push notification failed:", result.failed[0]);
+        return res.status(500).json({
+          error: "push notification failed",
+          environment: "production",
+          details: result.failed[0],
+        });
+      }
+    } catch (e) {
+      console.error("scheduleClipPush error:", e);
       return res.status(500).json({error: "internal server error"});
     }
   });

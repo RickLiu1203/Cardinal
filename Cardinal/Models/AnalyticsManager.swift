@@ -21,6 +21,23 @@ final class AnalyticsManager: ObservableObject {
     private let deviceIdKey = "clipDeviceId"
     private let visitorNameKey = "clipVisitorName"
     private init() {}
+    
+    /// Clear all stored analytics data (device ID, visitor names, etc.) - useful for production resets
+    func clearAllStoredData() {
+        UserDefaults.standard.removeObject(forKey: deviceIdKey)
+        UserDefaults.standard.removeObject(forKey: visitorNameKey)
+        
+        // Clear all portfolio-specific visitor names
+        let defaults = UserDefaults.standard
+        let allKeys = Array(defaults.dictionaryRepresentation().keys)
+        for key in allKeys {
+            if key.starts(with: "clipVisitorName_") {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        
+        print("🧹 AnalyticsManager: All stored data cleared (device ID, visitor names)")
+    }
 
     var deviceId: String {
         if let existing = UserDefaults.standard.string(forKey: deviceIdKey), !existing.isEmpty {

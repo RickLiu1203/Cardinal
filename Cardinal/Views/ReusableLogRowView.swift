@@ -17,6 +17,7 @@ struct ReusableLogRowView: View {
         case "add_contact": return ("person.crop.circle.badge.plus", .green)
         case "add_message": return ("bubble.left.fill", .mint)
         case "page_view": return ("eye.fill", .gray)
+        case "notification_sent": return ("bell.fill", .red)
         default: return ("clock", .gray)
         }
     }
@@ -31,6 +32,7 @@ struct ReusableLogRowView: View {
         case "add_contact": return "Added Your Contact"
         case "add_message": return "Added a Message"
         case "page_view": return "Opened Your AppClip"
+        case "notification_sent": return "Received Notification"
         default: return actionType.replacingOccurrences(of: "_", with: " ")
         }
     }

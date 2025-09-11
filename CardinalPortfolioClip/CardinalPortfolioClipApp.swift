@@ -7,14 +7,19 @@
 
 import SwiftUI
 import CoreText
+import UserNotifications
 
 @main
 struct CardinalPortfolioClipApp: App {
+    @UIApplicationDelegateAdaptor(ClipAppDelegate.self) var appDelegate
     @StateObject private var vm = PortfolioViewModel()
+    @StateObject private var notificationManager = NotificationManager.shared
     @State private var showLandingModal: Bool = false
     @State private var didLogOpen: Bool = false
     @State private var showingSplash = true
-    init() {}
+    @State private var hasScheduledNotification = false
+    init() {
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -30,7 +35,7 @@ struct CardinalPortfolioClipApp: App {
             } else {
                 ZStack(alignment: .center) {
                     portfolioContent
-                    
+
                     if showLandingModal {
                         Color("BackgroundPrimary")
                             .ignoresSafeArea()
@@ -38,11 +43,35 @@ struct CardinalPortfolioClipApp: App {
                         VStack {
                             Spacer()
                             LandingModalView(isPresented: $showLandingModal, ownerId: AnalyticsManager.shared.ownerId ?? vm.lastOwnerId ?? "") {
-                                // Dismiss modal and log a visit once
+                                let currentOwnerId = AnalyticsManager.shared.ownerId ?? vm.lastOwnerId ?? ""
+                                
                                 showLandingModal = false
-                                if !didLogOpen, let ownerId = AnalyticsManager.shared.ownerId ?? vm.lastOwnerId, !ownerId.isEmpty {
+                                
+                                if !didLogOpen, !currentOwnerId.isEmpty {
                                     AnalyticsManager.shared.logEvent(action: "page_view")
                                     didLogOpen = true
+                                }
+                                
+                                if !currentOwnerId.isEmpty {
+                                    let attemptKey = "notificationAttempt_\(currentOwnerId)"
+                                    let lastAttempt = UserDefaults.standard.double(forKey: attemptKey)
+                                    let now = Date().timeIntervalSince1970
+                                    let minInterval: TimeInterval = 30
+                                    
+                                    if now - lastAttempt > minInterval {
+                                        UserDefaults.standard.set(now, forKey: attemptKey)
+                                        
+                                        Task {
+                                            do {
+                                                await notificationManager.scheduleWelcomeNotification(
+                                                    for: currentOwnerId,
+                                                    personalDetails: vm.personalDetails
+                                                )
+                                                hasScheduledNotification = true
+                                            } catch {
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             Spacer()
@@ -141,31 +170,39 @@ struct CardinalPortfolioClipApp: App {
     private func setupInitialState() {}
     
     private func handleOpenURL(_ url: URL) {
+        guard let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "id" })?.value, !ownerId.isEmpty else {
+            return
+        }
+        
+        let currentOwnerId = AnalyticsManager.shared.ownerId
+        if currentOwnerId == ownerId && !showLandingModal {
+            return
+        }
+        
         vm.apply(url: url)
-        if let ownerId = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?.first(where: { $0.name == "id" })?.value, !ownerId.isEmpty {
-            
-            // Reset tracking state when switching portfolios
-            let isNewPortfolio = AnalyticsManager.shared.ownerId != ownerId
-            if isNewPortfolio {
-                didLogOpen = false
-            }
-            
-            AnalyticsManager.shared.ownerId = ownerId
-            
-            // Now that ownerId is set, check if we should show the modal for this specific portfolio
-            let shouldShowModal = AnalyticsManager.shared.visitorName.isEmpty
-            
-            // Update modal state if needed
-            if showLandingModal != shouldShowModal {
-                showLandingModal = shouldShowModal
-            }
-            
-            // If we already have a name for this portfolio, log immediately; otherwise, wait for modal submit
-            if !shouldShowModal && !didLogOpen {
-                AnalyticsManager.shared.logEvent(action: "page_view")
-                didLogOpen = true
-            }
+        
+        let isNewPortfolio = currentOwnerId != ownerId
+        if isNewPortfolio {
+            didLogOpen = false
+            hasScheduledNotification = false
+        }
+        
+        AnalyticsManager.shared.ownerId = ownerId
+        
+        let portfolioSpecificKey = "clipVisitorName_\(ownerId)"
+        let hasVisitorName = !((UserDefaults.standard.string(forKey: portfolioSpecificKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        let shouldShowModal = !hasVisitorName
+        
+        if isNewPortfolio {
+            showLandingModal = shouldShowModal
+        } else if !showLandingModal && shouldShowModal {
+            showLandingModal = shouldShowModal
+        }
+        
+        if !shouldShowModal && !didLogOpen {
+            AnalyticsManager.shared.logEvent(action: "page_view")
+            didLogOpen = true
         }
     }
 }

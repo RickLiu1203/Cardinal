@@ -11,5 +11,7 @@
 	<array>
 		<string>$(AppIdentifierPrefix)com.rzliu.Cardinal</string>
 	</array>
+	<key>aps-environment</key>
+	<string>development</string>
 </dict>
 </plist>
